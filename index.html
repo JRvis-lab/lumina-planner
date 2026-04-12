@@ -1,79 +1,1162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina Planner</title>
-    <style>
-        /* Add animations for the listening state */
-        .listening {
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JR · Lumina Planner</title>
+<meta name="description" content="Lumina Sanctorum daily planner — Vault, Plan, Projects, Focus">
+<meta name="theme-color" content="#0A1931">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lumina">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --abyss:       #0A1931;
+  --abyss-mid:   #112d55;
+  --abyss-light: #163a6e;
+  --gold:        #D4AF37;
+  --gold-dim:    rgba(212,175,55,0.15);
+  --gold-mid:    rgba(212,175,55,0.30);
+  --cyan:        #7DF9FF;
+  --cyan-dim:    rgba(125,249,255,0.12);
+  --cyan-mid:    rgba(125,249,255,0.30);
+  --cyan-glow:   rgba(125,249,255,0.50);
+  --cyan-bright: #A8FBFF;
+  --emerald:     #28A745;
+  --em-dim:      rgba(40,167,69,0.15);
+  --parchment:   #F5F5DC;
+  --parch-dim:   rgba(245,245,220,0.80);
+  --parch-muted: rgba(245,245,220,0.55);
+  --parch-faint: rgba(245,245,220,0.22);
+  --glass:       rgba(18,45,85,0.62);
+  --gb-gold:     rgba(212,175,55,0.20);
+  --gb-cyan:     rgba(125,249,255,0.14);
+  --danger:      #EF4444;
+  --danger-dim:  rgba(239,68,68,0.15);
+  --violet:      #C080E0;
+  --violet-dim:  rgba(192,128,224,0.14);
+  --violet-mid:  rgba(192,128,224,0.32);
+  --tab-bg:      rgba(8,18,38,0.97);
+  --tab-border:  rgba(125,249,255,0.10);
+}
+
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html { font-size:16px; }
+body {
+  font-family:'Outfit',sans-serif;
+  color:var(--parchment);
+  min-height:100vh;
+  max-width:480px;
+  margin:0 auto;
+  overflow-x:hidden;
+  position:relative;
+  background:radial-gradient(ellipse at 38% 22%, var(--abyss-light) 0%, var(--abyss-mid) 44%, var(--abyss) 100%);
+}
+::-webkit-scrollbar { width:0; }
+input::placeholder { color:var(--parch-faint); }
+textarea::placeholder { color:var(--parch-faint); }
+
+/* ── MOTES ─────────────────────────────────────────────── */
+.mote {
+  position:fixed; width:3px; height:3px; border-radius:50%;
+  pointer-events:none; z-index:0; opacity:0.5;
+}
+@keyframes mote1 {
+  0%{transform:translate(0,0)} 25%{transform:translate(30px,-20px)}
+  50%{transform:translate(-10px,-42px)} 75%{transform:translate(-30px,-15px)} 100%{transform:translate(0,0)}
+}
+@keyframes mote2 {
+  0%{transform:translate(0,0)} 33%{transform:translate(-25px,18px)}
+  66%{transform:translate(22px,-26px)} 100%{transform:translate(0,0)}
+}
+@keyframes mote3 {
+  0%{transform:translate(0,0)} 20%{transform:translate(16px,26px)}
+  60%{transform:translate(-22px,10px)} 100%{transform:translate(0,0)}
+}
+
+/* ── ATRIUM BG ─────────────────────────────────────────── */
+#atrium-bg {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  max-width:480px; margin:0 auto;
+  background:url('https://r2.flowith.net/files/o/1751982447066-grand_library_entrance_lumina_sanctorum_index_0@1024x1024.png') center/cover;
+  opacity:0; pointer-events:none; z-index:0;
+  transition:opacity 0.5s ease;
+}
+#atrium-bg.show { opacity:0.10; }
+
+/* ── HEADER ────────────────────────────────────────────── */
+.header {
+  padding:20px 20px 12px;
+  border-bottom:1px solid var(--tab-border);
+  position:sticky; top:0; z-index:50;
+  background:linear-gradient(180deg,var(--abyss) 0%,rgba(10,25,49,0.88) 100%);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.header-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+.header-title {
+  font-family:'Playfair Display',serif;
+  font-size:23px; font-weight:700;
+  background:linear-gradient(130deg,var(--gold) 0%,var(--parchment) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.header-date {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; color:var(--parch-muted);
+}
+.prog-row { display:flex; align-items:center; gap:10px; }
+.prog-track { flex:1; height:2px; background:rgba(125,249,255,0.08); border-radius:2px; overflow:hidden; }
+.prog-fill {
+  height:100%;
+  background:linear-gradient(90deg,var(--gold),var(--cyan));
+  border-radius:2px; transition:width 0.5s cubic-bezier(.4,0,.2,1);
+}
+.prog-label { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--parch-faint); min-width:38px; text-align:right; }
+
+/* ── PANELS ────────────────────────────────────────────── */
+.panel { display:none; padding:16px 18px 210px; min-height:60vh; position:relative; z-index:1; }
+.panel.active { display:block; }
+
+/* ── GLASS CARD ────────────────────────────────────────── */
+.glass {
+  background:var(--glass);
+  border:1px solid var(--gb-gold);
+  border-radius:14px;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 2px 12px rgba(0,0,0,0.22);
+}
+.glass-cyan { box-shadow:0 0 22px var(--cyan-dim), 0 2px 12px rgba(0,0,0,0.22); }
+
+/* ── ITEM CARD (vault / projects) ──────────────────────── */
+.item-card {
+  background:var(--glass);
+  border:1px solid var(--gb-gold);
+  border-radius:14px;
+  padding:14px 16px;
+  margin-bottom:8px;
+  display:flex; gap:12px; align-items:flex-start;
+  transition:box-shadow 0.2s;
+}
+.item-card:hover { box-shadow:0 0 16px var(--gold-dim); }
+.item-body { flex:1; min-width:0; }
+.item-text { font-size:15px; line-height:1.5; color:var(--parchment); word-break:break-word; }
+.item-meta { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--parch-muted); margin-top:4px; }
+.item-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+
+/* ── PRIORITY BADGE ────────────────────────────────────── */
+.prio-btn {
+  border-radius:8px; padding:4px 10px;
+  font-size:10px; font-weight:600; cursor:pointer;
+  text-transform:uppercase; border-width:1px; border-style:solid;
+  font-family:'JetBrains Mono',monospace; min-height:32px; letter-spacing:0.04em;
+  transition:opacity 0.15s;
+}
+.prio-btn:active { opacity:0.7; }
+.p-low  { background:var(--em-dim);      border-color:var(--emerald); color:#4ADE80; }
+.p-med  { background:var(--gold-dim);    border-color:var(--gold);    color:#FBBF24; }
+.p-high { background:var(--danger-dim);  border-color:var(--danger);  color:#F87171; }
+
+/* ── ICON BUTTON ───────────────────────────────────────── */
+.ibtn {
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  background:none; border:none; cursor:pointer;
+  color:var(--parch-muted); border-radius:10px; font-size:16px;
+  transition:color 0.15s, background 0.15s;
+}
+.ibtn:hover { background:var(--cyan-dim); color:var(--parchment); }
+.ibtn.go { background:var(--gold-dim); border:1px solid var(--gold-mid); color:var(--gold); }
+.ibtn.go:hover { background:var(--gold-mid); }
+.ibtn.del:hover { color:var(--danger); }
+
+/* ── PROMO INLINE SHEET ────────────────────────────────── */
+.promo-inline {
+  margin-top:10px;
+  padding:10px 12px;
+  background:rgba(17,45,85,0.92);
+  border:1px solid var(--cyan-mid);
+  border-radius:10px;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  animation:fadeIn 0.15s ease;
+}
+.promo-label {
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.15em; text-transform:uppercase; color:var(--cyan); white-space:nowrap;
+}
+.promo-opt {
+  padding:7px 13px; border-radius:8px;
+  border:1px solid var(--gb-gold); background:var(--glass);
+  color:var(--parch-dim); font-size:13px; cursor:pointer;
+  transition:all 0.15s; display:flex; align-items:center; gap:6px;
+}
+.promo-opt:hover { border-color:var(--gold); color:var(--gold); }
+
+/* ── SECTION LABEL ─────────────────────────────────────── */
+.slabel {
+  display:flex; align-items:center; gap:10px;
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.2em; text-transform:uppercase; color:var(--parch-faint);
+  padding:16px 0 8px;
+}
+.slabel::after { content:''; flex:1; height:1px; background:var(--tab-border); }
+
+/* ── BLOCK TABS ────────────────────────────────────────── */
+.block-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.block-tab {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:12px 6px; border-radius:14px; cursor:pointer;
+  border:1px solid rgba(125,249,255,0.08); background:rgba(18,45,85,0.30);
+  transition:all 0.22s; font-family:'Outfit',sans-serif;
+}
+.block-tab-icon  { font-size:20px; line-height:1; }
+.block-tab-label { font-size:11px; color:var(--parch-muted); font-weight:400; }
+.block-tab.bl-active .block-tab-label { color:var(--parchment); font-weight:600; }
+.block-tab-ct { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--parch-muted); }
+
+/* ── TASK CARD (plan) ──────────────────────────────────── */
+.task-card {
+  background:var(--glass); border:1px solid var(--gb-gold); border-radius:14px;
+  padding:14px; margin-bottom:8px;
+  display:flex; align-items:center; gap:10px;
+}
+.task-card.is-done { opacity:0.38; }
+.task-card.is-done .task-text { text-decoration:line-through; color:var(--parch-muted); }
+.check-ring {
+  width:28px; height:28px; border-radius:8px;
+  border:2px solid var(--gb-gold); background:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:all 0.2s; font-size:14px;
+}
+.check-ring.ticked { background:var(--em-dim); border-color:var(--emerald); color:#4ADE80; }
+.task-text { font-size:15px; flex:1; line-height:1.4; }
+
+/* ── EMPTY ─────────────────────────────────────────────── */
+.empty { text-align:center; padding:64px 24px; }
+.empty-icon { font-size:46px; opacity:0.28; margin-bottom:16px; }
+.empty-title { font-family:'Playfair Display',serif; font-size:18px; color:var(--parch-dim); margin-bottom:8px; }
+.empty-sub { font-size:13px; color:var(--parch-muted); line-height:1.65; }
+
+/* ── FOCUS / TIMER ─────────────────────────────────────── */
+.timer-wrap { display:flex; flex-direction:column; align-items:center; padding:28px 0 0; }
+.nudge-quote {
+  font-family:'Playfair Display',serif; font-style:italic;
+  font-size:14px; color:var(--gold); text-align:center;
+  opacity:0.7; line-height:1.65; max-width:260px; margin:0 auto 28px;
+}
+.timer-ring {
+  width:180px; height:180px; border-radius:50%;
+  border:2px solid var(--gold-mid);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  margin-bottom:24px; position:relative;
+  background:rgba(10,25,49,0.62);
+  transition:border-color 0.3s;
+}
+.timer-ring.brk { border-color:rgba(40,167,69,0.3); }
+@keyframes tGlow    { 0%,100%{box-shadow:0 0 16px rgba(212,175,55,0.2)} 50%{box-shadow:0 0 42px rgba(212,175,55,0.55)} }
+@keyframes tGlowBrk { 0%,100%{box-shadow:0 0 16px rgba(40,167,69,0.2)}  50%{box-shadow:0 0 42px rgba(40,167,69,0.55)} }
+.timer-ring.live       { animation:tGlow    3s ease-in-out infinite; }
+.timer-ring.brk.live   { animation:tGlowBrk 3s ease-in-out infinite; }
+.timer-num {
+  font-family:'JetBrains Mono',monospace; font-size:46px; font-weight:500;
+  color:var(--gold); letter-spacing:-2px; line-height:1;
+}
+.timer-ring.brk .timer-num { color:#4ADE80; }
+.timer-mode-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.2em; text-transform:uppercase; color:var(--parch-muted); margin-top:4px;
+}
+@keyframes tPulse { 0%,100%{opacity:0.45} 50%{opacity:1} }
+.timer-dot {
+  position:absolute; top:12px; right:12px;
+  width:8px; height:8px; border-radius:50%; background:var(--gold);
+  animation:tPulse 1.5s ease-in-out infinite;
+}
+.timer-dot.brk-dot { background:#4ADE80; }
+.timer-btns { display:flex; gap:14px; justify-content:center; margin-bottom:20px; }
+.t-btn {
+  width:60px; height:60px; border-radius:50%; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+  transition:transform 0.15s;
+}
+.t-btn:active { transform:scale(0.92); }
+.t-play  { background:linear-gradient(135deg,var(--gold),#B8941E); box-shadow:0 4px 22px rgba(212,175,55,0.38); }
+.t-reset { background:var(--glass); border:1px solid var(--gb-gold); color:var(--parch-dim); }
+.presets { display:flex; gap:8px; justify-content:center; margin-bottom:24px; }
+.preset {
+  padding:12px 20px; border-radius:10px;
+  border:1px solid var(--gb-gold); background:var(--glass);
+  color:var(--parchment); font-size:14px; cursor:pointer; min-height:48px;
+  font-family:'JetBrains Mono',monospace; transition:all 0.15s;
+}
+.preset.sel { background:var(--cyan-dim); border-color:var(--cyan-mid); color:var(--cyan-bright); }
+.focus-card {
+  background:var(--glass); border:1px solid var(--gb-gold);
+  border-radius:14px; padding:18px 20px; width:100%; margin-bottom:16px;
+}
+.focus-meta {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--parch-muted); margin-bottom:8px;
+}
+.focus-text { font-family:'Playfair Display',serif; font-size:18px; font-weight:600; line-height:1.5; }
+.focus-acts { display:flex; gap:8px; width:100%; }
+.f-btn {
+  flex:1; padding:14px 8px; border-radius:12px; border:none;
+  font-size:14px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  min-height:52px; min-width:76px; transition:opacity 0.2s;
+}
+.f-btn:active { opacity:0.78; }
+.f-done { background:var(--em-dim);      border:1px solid rgba(40,167,69,0.4); color:#4ADE80; }
+.f-skip { background:var(--glass);       border:1px solid var(--gb-gold);       color:var(--parch-dim); }
+.f-brk  { background:var(--violet-dim);  border:1px solid var(--violet-mid);    color:var(--violet); }
+
+/* ── INPUT BAR ─────────────────────────────────────────── */
+.input-bar {
+  position:fixed; bottom:92px; left:0; right:0;
+  max-width:480px; margin:0 auto;
+  padding:28px 18px 10px;
+  background:linear-gradient(transparent,var(--abyss) 38%);
+  z-index:40;
+}
+.input-shell {
+  display:flex; gap:6px; align-items:center;
+  padding:5px 5px 5px 18px;
+  background:var(--glass); border:1px solid var(--gb-gold);
+  border-radius:16px; backdrop-filter:blur(16px);
+}
+.input-shell input {
+  flex:1; background:none; border:none; outline:none;
+  color:var(--parchment); font-family:'Outfit',sans-serif;
+  font-size:16px; min-height:46px; caret-color:var(--gold);
+}
+.add-btn {
+  width:50px; height:50px; border-radius:12px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+  transition:all 0.2s;
+}
+.add-btn.rdy { background:linear-gradient(135deg,var(--gold),#B8941E); box-shadow:0 4px 18px rgba(212,175,55,0.38); color:var(--abyss); }
+.add-btn.off { background:var(--cyan-dim); color:var(--cyan); opacity:0.48; }
+
+/* ── MIC BUTTON ────────────────────────────────────────── */
+.mic-btn {
+  width:50px; height:50px; border-radius:12px; border:none; cursor:pointer;
+  display:none; align-items:center; justify-content:center; font-size:20px;
+  background:var(--cyan-dim); transition:all 0.2s; flex-shrink:0;
+}
+.mic-btn.visible { display:flex; }
+.mic-btn.listening {
+  background:var(--danger-dim); border:1px solid rgba(239,68,68,0.4);
+  animation:micPulse 1.5s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%,100%{ box-shadow:0 0 10px rgba(239,68,68,0.25) }
+  50%    { box-shadow:0 0 24px rgba(239,68,68,0.55) }
+}
+
+/* ── TAB BAR ───────────────────────────────────────────── */
+.tab-bar {
+  position:fixed; bottom:0; left:0; right:0;
+  max-width:480px; margin:0 auto;
+  background:var(--tab-bg); border-top:1px solid var(--tab-border);
+  display:flex; padding:6px 6px max(6px,env(safe-area-inset-bottom));
+  backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+  z-index:60; gap:4px;
+}
+.tab-btn {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:5px; padding:8px 4px; border:1px solid transparent; border-radius:16px;
+  background:none; cursor:pointer; min-height:80px;
+  color:var(--parch-muted); font-size:11px; font-family:'Outfit',sans-serif;
+  transition:all 0.25s ease; position:relative;
+}
+.tab-btn.active { background:var(--cyan-dim); border-color:var(--cyan-mid); color:var(--cyan-bright); font-weight:700; }
+@keyframes cyanPulse {
+  0%,100%{ box-shadow:0 0 12px rgba(125,249,255,0.25),inset 0 0 8px rgba(125,249,255,0.08) }
+  50%    { box-shadow:0 0 30px rgba(125,249,255,0.52),inset 0 0 14px rgba(125,249,255,0.16) }
+}
+.tab-btn.active { animation:cyanPulse 2.6s ease-in-out infinite; }
+.tab-icon { font-size:28px; line-height:1; }
+.tab-badge {
+  position:absolute; top:4px; right:6px;
+  background:var(--cyan); color:var(--abyss);
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  padding:2px 5px; border-radius:10px; min-width:16px; text-align:center;
+  box-shadow:0 0 8px var(--cyan-glow); display:none;
+}
+
+/* ── STICKY FAB ────────────────────────────────────────── */
+#sticky-fab {
+  position:fixed; top:78px; left:18px;
+  width:38px; height:38px; border-radius:50%;
+  background:var(--glass); border:1px solid var(--gb-gold);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:16px; z-index:50;
+  transition:border-color 0.2s;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+#sticky-fab:hover { border-color:var(--gold); }
+#sticky-badge {
+  position:absolute; top:-4px; right:-4px;
+  background:var(--gold); color:var(--abyss);
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  padding:1px 4px; border-radius:8px; min-width:14px; text-align:center; display:none;
+}
+
+/* ── STICKY PANEL ──────────────────────────────────────── */
+#sticky-panel {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.88);
+  z-index:120; display:none; flex-direction:column;
+  padding:20px 18px max(24px,env(safe-area-inset-bottom));
+  overflow-y:auto;
+}
+#sticky-panel.open { display:flex; }
+.sticky-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.sticky-eyebrow { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
+.sticky-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+.sticky-note {
+  background:#27200f; border:1px solid #3e3018;
+  border-radius:8px; padding:12px; min-height:80px;
+  font-size:14px; line-height:1.5; color:#c8a870;
+  position:relative; word-break:break-word;
+}
+.sticky-note.c1 { background:#0f1f15; border-color:#1e3824; color:#80b494; }
+.sticky-note.c2 { background:#10101f; border-color:#1e1e34; color:#8888c0; }
+.sticky-note.c3 { background:#1f1010; border-color:#381e1e; color:#c08080; }
+.sn-x { position:absolute; top:6px; right:8px; cursor:pointer; font-size:12px; color:rgba(255,255,255,0.18); transition:color 0.15s; }
+.sn-x:hover { color:var(--danger); }
+
+/* ── NEW DAY MODAL ─────────────────────────────────────── */
+#nd-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.92);
+  z-index:200; display:none; align-items:center; justify-content:center; padding:24px;
+}
+#nd-overlay.open { display:flex; }
+@keyframes fadeScaleIn { from{opacity:0;transform:scale(0.93)} to{opacity:1;transform:scale(1)} }
+.nd-card {
+  background:var(--abyss-mid); border:1px solid var(--gold-mid);
+  border-radius:18px; padding:24px 20px 20px; width:100%; max-width:380px;
+  box-shadow:0 0 44px var(--gold-dim); animation:fadeScaleIn 0.28s ease;
+}
+.nd-eyebrow { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+.nd-body { font-size:16px; font-weight:300; color:var(--parch-muted); line-height:1.6; margin-bottom:18px; }
+.nd-body strong { color:var(--parchment); font-weight:500; }
+.nd-stats { display:flex; gap:10px; margin-bottom:20px; }
+.nd-stat { flex:1; background:rgba(125,249,255,0.04); border-radius:10px; padding:12px 8px 10px; text-align:center; border:1px solid var(--tab-border); }
+.nd-n { font-family:'JetBrains Mono',monospace; font-size:28px; color:var(--gold); line-height:1; }
+.nd-l { font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:0.12em; text-transform:uppercase; color:var(--parch-faint); margin-top:5px; }
+.nd-btn {
+  width:100%; padding:14px; border-radius:10px; border:none;
+  font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase;
+  cursor:pointer; margin-bottom:8px; transition:opacity 0.2s;
+}
+.nd-btn:active { opacity:0.8; }
+.nd-primary { background:var(--gold); color:var(--abyss); font-weight:700; box-shadow:0 4px 18px rgba(212,175,55,0.32); }
+.nd-secondary { background:rgba(125,249,255,0.05); color:var(--parch-muted); border:1px solid var(--tab-border); }
+
+/* ── MISC ANIMATIONS ───────────────────────────────────── */
+@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideUp { from{transform:translateY(44px);opacity:0} to{transform:translateY(0);opacity:1} }
+</style>
 </head>
 <body>
-    <h1>Lumina Planner</h1>
-    <button id="micButton" title="Click to start voice capture">🎤</button>
-    <div id="feedback"></div>
-    <script>
-        const micButton = document.getElementById('micButton');
-        const feedback = document.getElementById('feedback');
-        let recognition;
 
-        function initSpeechRecognition() {
-            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                recognition.continuous = true;
-                recognition.interimResults = true;
+<!-- AMBIENT MOTES -->
+<div class="mote" style="background:var(--cyan);top:18%;left:11%;animation:mote1 11s ease-in-out infinite"></div>
+<div class="mote" style="background:var(--gold);top:33%;left:76%;animation:mote2 14s ease-in-out infinite"></div>
+<div class="mote" style="background:var(--cyan);top:54%;left:26%;animation:mote3 10s ease-in-out infinite"></div>
+<div class="mote" style="background:var(--gold);top:68%;left:85%;animation:mote1 16s ease-in-out infinite reverse"></div>
+<div class="mote" style="background:var(--violet);top:83%;left:47%;animation:mote2 13s ease-in-out infinite"></div>
 
-                recognition.onstart = function() {
-                    micButton.classList.add('listening');
-                    feedback.innerHTML = 'Listening...';
-                };
+<!-- ATRIUM BACKGROUND -->
+<div id="atrium-bg"></div>
 
-                recognition.onresult = function(event) {
-                    let transcript = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        transcript += event.results[i][0].transcript;
-                    }
-                    autoSave(transcript);  // Auto-save captured content
-                };
+<!-- HEADER -->
+<header class="header">
+  <div class="header-row">
+    <div class="header-title" id="h-title">The Vault</div>
+    <div class="header-date" id="h-date"></div>
+  </div>
+  <div class="prog-row" id="prog-row" style="display:none">
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-label" id="prog-label">—</div>
+  </div>
+</header>
 
-                recognition.onerror = function(event) {
-                    feedback.innerHTML = 'Error occurred in recognition: ' + event.error;
-                    // User-friendly prompts for errors
-                    if (event.error === 'not-allowed') {
-                        alert('Microphone access denied. Please allow microphone permissions in your browser settings.');
-                    }
-                };
+<!-- PANELS -->
+<section class="panel active" id="panel-vault"></section>
+<section class="panel"        id="panel-plan"></section>
+<section class="panel"        id="panel-projects"></section>
+<section class="panel"        id="panel-focus"></section>
 
-                recognition.onend = function() {
-                    micButton.classList.remove('listening');
-                    feedback.innerHTML = ''; // Clear feedback on end
-                };
-            } else {
-                feedback.innerHTML = 'Speech Recognition not supported in this browser.';
-                alert('Please use a supported browser or enable the microphone.');
-            }
-        }
+<!-- INPUT BAR -->
+<div class="input-bar" id="input-bar">
+  <div class="input-shell">
+    <input id="main-input" autocomplete="off" spellcheck="false" placeholder="Capture a thought…">
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice capture">🎙</button>
+    <button class="add-btn off" id="add-btn" onclick="handleAdd()">＋</button>
+  </div>
+</div>
 
-        function autoSave(content) {
-            // Implement auto-save feature (e.g., save to local storage or server)
-            localStorage.setItem('capturedContent', content);
-        }
+<!-- STICKY FAB -->
+<div id="sticky-fab" onclick="toggleStickies()">
+  📌<span id="sticky-badge"></span>
+</div>
 
-        micButton.addEventListener('click', () => {
-            if (recognition) {
-                recognition.start();
-            }
-        });
+<!-- TAB BAR -->
+<nav class="tab-bar">
+  <button class="tab-btn active" id="tab-vault"    onclick="switchTab('vault')">
+    <span class="tab-icon">🧠</span><span>The Vault</span>
+    <span class="tab-badge" id="tb-vault"></span>
+  </button>
+  <button class="tab-btn" id="tab-plan"     onclick="switchTab('plan')">
+    <span class="tab-icon">📅</span><span>Plan</span>
+    <span class="tab-badge" id="tb-plan"></span>
+  </button>
+  <button class="tab-btn" id="tab-projects" onclick="switchTab('projects')">
+    <span class="tab-icon">🗂</span><span>Projects</span>
+    <span class="tab-badge" id="tb-projects"></span>
+  </button>
+  <button class="tab-btn" id="tab-focus"    onclick="switchTab('focus')">
+    <span class="tab-icon">🎯</span><span>Focus</span>
+  </button>
+</nav>
 
-        initSpeechRecognition();
-    </script>
+<!-- STICKY PANEL -->
+<div id="sticky-panel">
+  <div class="sticky-header">
+    <div class="sticky-eyebrow">📌 Sticky Notes</div>
+    <button onclick="toggleStickies()" style="background:none;border:none;color:var(--parch-muted);font-size:18px;cursor:pointer;padding:4px;line-height:1">✕</button>
+  </div>
+  <div class="sticky-grid" id="sticky-grid"></div>
+  <textarea id="sticky-ta" rows="2" placeholder="New note…"
+    style="width:100%;background:var(--glass);border:1px dashed var(--gb-gold);border-radius:10px;padding:12px;color:var(--parchment);font-family:'Outfit',sans-serif;font-size:15px;resize:none;outline:none;caret-color:var(--gold);min-height:72px;line-height:1.45"></textarea>
+  <button onclick="addSticky()"
+    style="margin-top:8px;float:right;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;padding:7px 16px;background:none;border:1px solid var(--gold);border-radius:6px;color:var(--gold);cursor:pointer">
+    + Add Note
+  </button>
+</div>
+
+<!-- NEW DAY MODAL -->
+<div id="nd-overlay">
+  <div class="nd-card">
+    <div class="nd-eyebrow">☀ New Day</div>
+    <div class="nd-body" id="nd-body"></div>
+    <div class="nd-stats" id="nd-stats"></div>
+    <div id="nd-actions"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════════ */
+const NUDGES = [
+  "Just start. Five minutes. That's it.",
+  "Motion before motivation.",
+  "You don't have to finish. Just begin.",
+  "Future you will thank present you.",
+  "Small moves. Every single day.",
+  "The hardest part is opening the file.",
+  "Done beats perfect. Always.",
+  "One brick at a time builds the machine.",
+  "Clarity comes from action, not thought.",
+  "Ship the rough cut. Refine after.",
+];
+
+const BLOCKS    = ['morning','afternoon','evening'];
+const BL_LABEL  = { morning:'Morning', afternoon:'Afternoon', evening:'Evening' };
+const BL_ICON   = { morning:'☀', afternoon:'✦', evening:'🌙' };
+const BL_COLOR  = { morning:'rgba(212,175,55,0.55)', afternoon:'rgba(125,249,255,0.55)', evening:'rgba(192,128,224,0.55)' };
+const PRIOS     = ['low','med','high'];
+const PL        = { low:'▲ Low', med:'◆ Med', high:'● High' };
+const SC        = ['','c1','c2','c3'];
+
+const PRIO_S = {
+  low:  { bg:'rgba(40,167,69,0.14)',   border:'#28A745', text:'#4ADE80' },
+  med:  { bg:'rgba(212,175,55,0.14)',  border:'#D4AF37', text:'#FBBF24' },
+  high: { bg:'rgba(239,68,68,0.15)',   border:'#EF4444', text:'#F87171' },
+};
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let S = {
+  items:      [],   // { id, text, created, status:'vault'|'planned'|'done', priority, timeBlock }
+  projects:   [],   // { id, text, created, priority }
+  stickies:   [],   // { id, text, color }
+  lastDate:   null,
+  tab:        'vault',
+  activeBlock:'morning',
+  showDone:   false,
+  promoOpen:  null,
+  focusIdx:   0,
+  timer:      1500,
+  timerOn:    false,
+  timerMode:  'work',
+  nudge:      NUDGES[0],
+  _tick:      null,
+};
+
+/* ═══════════════════════════════════════════════
+   STORAGE
+═══════════════════════════════════════════════ */
+const SK = 'jr-lumina-v2';
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SK) || '{}');
+    S.items    = (d.items    || []).map(i => ({...i, timeBlock: i.timeBlock === 'free' ? 'morning' : i.timeBlock}));
+    S.projects = d.projects || [];
+    S.stickies = d.stickies || [];
+    S.lastDate = d.lastDate || null;
+  } catch {}
+}
+function save() {
+  try {
+    localStorage.setItem(SK, JSON.stringify({
+      items: S.items, projects: S.projects,
+      stickies: S.stickies, lastDate: S.lastDate,
+    }));
+  } catch {}
+}
+
+/* ═══════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════ */
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const esc  = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt  = s  => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+const todayStr = () => new Date().toISOString().slice(0,10);
+const friendlyDate = () => {
+  const d = new Date();
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]
+    + ' ' + d.getDate()
+    + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+};
+const fmtDateStr = s => {
+  if (!s) return '';
+  const d = new Date(s+'T12:00:00');
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]
+    + ' ' + (d.getMonth()+1) + '/' + d.getDate();
+};
+
+const makeItem    = (text,status='vault',priority='med',timeBlock='free') =>
+  ({ id:uid(), text:text.trim(), created:new Date().toISOString(), status, priority, timeBlock });
+const makeProject = text => ({ id:uid(), text:text.trim(), created:new Date().toISOString(), priority:'med' });
+const makeSticky  = text => ({ id:uid(), text:text.trim(), color:Math.floor(Math.random()*4) });
+
+function prioBadge(p, id, fn) {
+  const ps = PRIO_S[p];
+  return `<button class="prio-btn p-${esc(p)}" onclick="${fn}('${esc(id)}')"
+    style="background:${ps.bg};border-color:${ps.border};color:${ps.text}">${PL[p]}</button>`;
+}
+
+/* ═══════════════════════════════════════════════
+   NEW DAY
+═══════════════════════════════════════════════ */
+function checkNewDay() {
+  const today = todayStr();
+  if (S.lastDate === today) return;
+  if (!S.lastDate && S.items.length === 0) { S.lastDate = today; save(); return; }
+
+  const done   = S.items.filter(i => i.status === 'done').length;
+  const undone = S.items.filter(i => i.status === 'planned');
+  const vault  = S.items.filter(i => i.status === 'vault').length;
+
+  document.getElementById('nd-body').innerHTML = S.lastDate
+    ? `Yesterday was <strong>${fmtDateStr(S.lastDate)}</strong>. New day, new slate.`
+    : `First run. Let's get oriented.`;
+
+  document.getElementById('nd-stats').innerHTML = `
+    <div class="nd-stat"><div class="nd-n">${done}</div><div class="nd-l">Done</div></div>
+    <div class="nd-stat"><div class="nd-n">${undone.length}</div><div class="nd-l">Unfinished</div></div>
+    <div class="nd-stat"><div class="nd-n">${vault}</div><div class="nd-l">In Vault</div></div>`;
+
+  const acts = document.getElementById('nd-actions');
+  acts.innerHTML = '';
+  const b1 = document.createElement('button');
+  b1.className = 'nd-btn nd-primary';
+  b1.textContent = 'Carry Forward & Begin Day';
+  b1.onclick = () => ndTransition('carry', undone, today);
+  acts.appendChild(b1);
+  if (undone.length) {
+    const b2 = document.createElement('button');
+    b2.className = 'nd-btn nd-secondary';
+    b2.textContent = `Fresh Start — Drop ${undone.length} Unfinished`;
+    b2.onclick = () => ndTransition('drop', undone, today);
+    acts.appendChild(b2);
+  }
+  document.getElementById('nd-overlay').classList.add('open');
+}
+
+function ndTransition(mode, undone, today) {
+  S.items = S.items.filter(i => i.status !== 'done');
+  if (mode === 'drop') S.items = S.items.filter(i => i.status !== 'planned');
+  S.lastDate = today;
+  save();
+  document.getElementById('nd-overlay').classList.remove('open');
+  renderAll();
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER SHELL
+═══════════════════════════════════════════════ */
+function renderAll() {
+  renderHeader();
+  if (S.tab === 'vault')    renderVault();
+  if (S.tab === 'plan')     renderPlan();
+  if (S.tab === 'projects') renderProjects();
+  if (S.tab === 'focus')    renderFocus();
+  updateBadges();
+  // Atrium bg: vault only
+  document.getElementById('atrium-bg').classList.toggle('show', S.tab === 'vault');
+  // Input bar hidden on focus tab only
+  const hide = S.tab === 'focus';
+  document.getElementById('input-bar').style.display  = hide ? 'none' : '';
+  updateMicVisibility();
+  // Input placeholder
+  const ph = { vault:'Capture a thought…', plan:'Add a task…', projects:'New project…' }[S.tab] || '';
+  const inp = document.getElementById('main-input');
+  if (inp) inp.placeholder = ph;
+}
+
+function renderHeader() {
+  const titles = { vault:'The Vault', plan:'Day Plan', projects:'Projects', focus:'Focus Mode' };
+  document.getElementById('h-title').textContent = titles[S.tab] || '';
+  document.getElementById('h-date').textContent  = friendlyDate();
+
+  const planned = S.items.filter(i => i.status === 'planned');
+  const done    = S.items.filter(i => i.status === 'done');
+  const total   = planned.length + done.length;
+  const pRow    = document.getElementById('prog-row');
+
+  if (S.tab === 'plan' && total > 0) {
+    pRow.style.display = 'flex';
+    const pct = Math.round(done.length / total * 100);
+    document.getElementById('prog-fill').style.width  = pct + '%';
+    document.getElementById('prog-label').textContent = `${done.length}/${total}`;
+  } else {
+    pRow.style.display = 'none';
+  }
+}
+
+function updateBadges() {
+  const vn  = S.items.filter(i => i.status === 'vault').length;
+  const pn  = S.items.filter(i => i.status === 'planned').length;
+  const prn = S.projects.length;
+  const sn  = S.stickies.length;
+  badge('tb-vault',    vn);
+  badge('tb-plan',     pn);
+  badge('tb-projects', prn);
+  const sb = document.getElementById('sticky-badge');
+  sb.textContent = sn; sb.style.display = sn ? '' : 'none';
+}
+function badge(id, n) {
+  const el = document.getElementById(id);
+  el.textContent = n; el.style.display = n ? '' : 'none';
+}
+
+/* ═══════════════════════════════════════════════
+   VAULT
+═══════════════════════════════════════════════ */
+function renderVault() {
+  const panel = document.getElementById('panel-vault');
+  const items = S.items.filter(i => i.status === 'vault');
+
+  if (!items.length) {
+    panel.innerHTML = `<div class="empty">
+      <div class="empty-icon">🌙</div>
+      <div class="empty-title">The Vault awaits.</div>
+      <div class="empty-sub">Capture thoughts below — raw and unfiltered.<br>Promote to the Day Plan when ready.</div>
+    </div>`;
+    return;
+  }
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 12px">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--parch-muted)">${items.length} captured</span>
+    <button onclick="clearVault()" style="background:none;border:none;color:var(--parch-muted);font-size:12px;cursor:pointer;padding:6px 0">Clear all</button>
+  </div>`;
+
+  items.forEach(item => {
+    const t = new Date(item.created).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    html += `
+    <div class="item-card" id="vc-${esc(item.id)}">
+      <div class="item-body">
+        <div class="item-text">${esc(item.text).replace(/\n/g,'<br>')}</div>
+        <div class="item-meta">${t}</div>
+        ${S.promoOpen === item.id ? promoInlineHTML(item.id) : ''}
+      </div>
+      <div class="item-actions">
+        ${prioBadge(item.priority, item.id, 'cycleVaultPrio')}
+        <button class="ibtn go" title="Plan this" onclick="togglePromo('${esc(item.id)}')">→</button>
+        <button class="ibtn del" title="Remove" onclick="delItem('${esc(item.id)}')">✕</button>
+      </div>
+    </div>`;
+  });
+
+  panel.innerHTML = html;
+}
+
+function promoInlineHTML(id) {
+  let html = `<div class="promo-inline"><span class="promo-label">Plan for →</span>`;
+  BLOCKS.forEach(b => {
+    html += `<button class="promo-opt" onclick="promoteItem('${esc(id)}','${b}')">${BL_ICON[b]} ${BL_LABEL[b]}</button>`;
+  });
+  return html + '</div>';
+}
+
+function togglePromo(id)  { S.promoOpen = S.promoOpen === id ? null : id; renderVault(); }
+function clearVault()     { S.items = S.items.filter(i => i.status !== 'vault'); save(); renderAll(); }
+
+function promoteItem(id, block) {
+  S.items = S.items.map(i => i.id === id ? {...i, status:'planned', timeBlock:block} : i);
+  S.promoOpen = null; save(); switchTab('plan');
+}
+
+function cycleVaultPrio(id) {
+  const cyc = {low:'med', med:'high', high:'low'};
+  S.items = S.items.map(i => i.id === id ? {...i, priority:cyc[i.priority]} : i);
+  save(); renderVault(); updateBadges();
+}
+
+function delItem(id) { S.items = S.items.filter(i => i.id !== id); save(); renderAll(); }
+
+/* ═══════════════════════════════════════════════
+   PLAN
+═══════════════════════════════════════════════ */
+function renderPlan() {
+  const panel   = document.getElementById('panel-plan');
+  const planned = S.items.filter(i => i.status === 'planned');
+  const done    = S.items.filter(i => i.status === 'done');
+
+  // Block tabs
+  let html = `<div class="block-tabs">`;
+  BLOCKS.forEach(b => {
+    const ct     = planned.filter(i => i.timeBlock === b).length;
+    const active = S.activeBlock === b;
+    html += `
+    <button class="block-tab ${active?'bl-active':''}" onclick="setBlock('${b}')"
+      style="${active ? 'background:var(--glass);border-color:'+BL_COLOR[b]+';box-shadow:0 0 22px '+BL_COLOR[b]+'40' : ''}">
+      <span class="block-tab-icon">${BL_ICON[b]}</span>
+      <span class="block-tab-label">${BL_LABEL[b]}</span>
+      ${ct ? `<span class="block-tab-ct">${ct}</span>` : ''}
+    </button>`;
+  });
+  html += `</div>`;
+
+  // Block tasks
+  const blockItems = planned.filter(i => i.timeBlock === S.activeBlock);
+  if (!blockItems.length) {
+    html += `<div style="text-align:center;padding:38px 20px;color:var(--parch-muted);font-style:italic;font-size:14px;line-height:1.6">
+      Nothing here yet.<br>Promote from The Vault →
+    </div>`;
+  } else {
+    blockItems.forEach(item => {
+      const ps = PRIO_S[item.priority];
+      html += `
+      <div class="task-card" style="border-left:3px solid ${ps.border}">
+        <button class="check-ring" onclick="markDone('${esc(item.id)}')"></button>
+        <span class="task-text">${esc(item.text).replace(/\n/g,'<br>')}</span>
+        ${prioBadge(item.priority, item.id, 'cyclePlanPrio')}
+        <button class="ibtn del" onclick="delItem('${esc(item.id)}')">✕</button>
+      </div>`;
+    });
+  }
+
+  // Completed section
+  if (done.length) {
+    html += `
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 0 0;cursor:pointer" onclick="toggleDone()">
+      <span style="color:#4ADE80;font-size:14px">✓</span>
+      <span style="color:var(--parch-muted);font-size:13px">${done.length} completed</span>
+      <span style="color:var(--parch-faint);font-size:10px">${S.showDone?'▲':'▼'}</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--parch-muted)" onclick="event.stopPropagation();clearDone()">Clear</span>
+    </div>`;
+    if (S.showDone) {
+      done.forEach(item => {
+        html += `
+        <div class="task-card is-done">
+          <button class="check-ring ticked" onclick="undone('${esc(item.id)}')">✓</button>
+          <span class="task-text">${esc(item.text)}</span>
+        </div>`;
+      });
+    }
+  }
+
+  panel.innerHTML = html;
+}
+
+function setBlock(b)    { S.activeBlock = b; renderPlan(); }
+function toggleDone()   { S.showDone = !S.showDone; renderPlan(); }
+function clearDone()    { S.items = S.items.filter(i => i.status !== 'done'); save(); renderAll(); }
+function markDone(id)   { S.items = S.items.map(i => i.id===id ? {...i,status:'done'} : i); save(); renderAll(); }
+function undone(id)     { S.items = S.items.map(i => i.id===id ? {...i,status:'planned'} : i); save(); renderAll(); }
+function cyclePlanPrio(id) {
+  const cyc={low:'med',med:'high',high:'low'};
+  S.items=S.items.map(i=>i.id===id?{...i,priority:cyc[i.priority]}:i);
+  save(); renderPlan();
+}
+
+/* ═══════════════════════════════════════════════
+   PROJECTS
+═══════════════════════════════════════════════ */
+function renderProjects() {
+  const panel = document.getElementById('panel-projects');
+  if (!S.projects.length) {
+    panel.innerHTML = `<div class="empty">
+      <div class="empty-icon">🗂</div>
+      <div class="empty-title">No projects yet.</div>
+      <div class="empty-sub">Add ongoing work — things with no single completion date.<br>Type below and hit Enter.</div>
+    </div>`;
+    return;
+  }
+  let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--parch-muted);padding:8px 0 12px">
+    ${S.projects.length} project${S.projects.length!==1?'s':''}
+  </div>`;
+  S.projects.forEach(p => {
+    const dt = new Date(p.created).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    html += `
+    <div class="item-card" style="border-left:3px solid var(--cyan)">
+      <div class="item-body">
+        <div class="item-text" style="font-size:16px;font-weight:500">${esc(p.text)}</div>
+        <div class="item-meta">${dt}</div>
+      </div>
+      <div class="item-actions">
+        ${prioBadge(p.priority, p.id, 'cycleProjPrio')}
+        <button class="ibtn del" onclick="delProject('${esc(p.id)}')">✕</button>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function delProject(id) { S.projects = S.projects.filter(p => p.id !== id); save(); renderAll(); }
+function cycleProjPrio(id) {
+  const cyc={low:'med',med:'high',high:'low'};
+  S.projects=S.projects.map(p=>p.id===id?{...p,priority:cyc[p.priority]}:p);
+  save(); renderProjects();
+}
+
+/* ═══════════════════════════════════════════════
+   FOCUS
+═══════════════════════════════════════════════ */
+function renderFocus() {
+  const panel  = document.getElementById('panel-focus');
+  const queue  = [...S.items.filter(i => i.status==='planned')]
+    .sort((a,b) => ({high:0,med:1,low:2})[a.priority] - ({high:0,med:1,low:2})[b.priority]);
+
+  if (!queue.length) {
+    panel.innerHTML = `<div class="empty" style="padding-top:80px">
+      <div class="empty-icon">🎯</div>
+      <div class="empty-title">Nothing to focus on.</div>
+      <div class="empty-sub">Promote tasks from The Vault → Plan first, then come back here.</div>
+    </div>`;
+    return;
+  }
+
+  const fi   = Math.min(S.focusIdx, queue.length - 1);
+  const task = queue[fi];
+  const ps   = PRIO_S[task.priority];
+  const brk  = S.timerMode === 'break';
+  const live = S.timerOn;
+  const presets = [{l:'5m',s:300},{l:'15m',s:900},{l:'25m',s:1500}];
+
+  panel.innerHTML = `
+  <div class="timer-wrap">
+    <div class="nudge-quote">"${esc(S.nudge)}"</div>
+
+    <div class="timer-ring ${brk?'brk':''} ${live?'live':''}">
+      <div class="timer-num" id="t-num">${fmt(S.timer)}</div>
+      <div class="timer-mode-lbl">${brk?'break':'focus'}</div>
+      ${live?`<div class="timer-dot ${brk?'brk-dot':''}"></div>`:''}
+    </div>
+
+    <div class="timer-btns">
+      <button class="t-btn t-play" onclick="toggleTimer()">${live?'⏸':'▶'}</button>
+      <button class="t-btn t-reset" onclick="resetTimer()">↺</button>
+    </div>
+
+    <div class="presets">
+      ${presets.map(p=>`<button class="preset ${S.timer===p.s&&!live?'sel':''}" onclick="setPreset(${p.s})">${p.l}</button>`).join('')}
+    </div>
+
+    <div class="focus-card" style="border-left:4px solid ${ps.border}">
+      <div class="focus-meta">Current · ${fi+1}/${queue.length} · ${PL[task.priority]}</div>
+      <div class="focus-text">${esc(task.text)}</div>
+    </div>
+
+    <div class="focus-acts">
+      <button class="f-btn f-done" onclick="focusDone('${esc(task.id)}')">✓ Done</button>
+      <button class="f-btn f-skip" onclick="focusSkip(${queue.length})">Skip</button>
+      <button class="f-btn f-brk"  onclick="focusBreak('${esc(task.id)}')">Break ↓</button>
+    </div>
+  </div>`;
+}
+
+function toggleTimer() {
+  S.timerOn = !S.timerOn;
+  if (S.timerOn) {
+    S._tick = setInterval(() => {
+      if (S.timer <= 0) {
+        clearInterval(S._tick); S._tick = null; S.timerOn = false;
+        S.timerMode = S.timerMode === 'work' ? 'break' : 'work';
+        S.timer = S.timerMode === 'break' ? 300 : 1500;
+        if (S.tab === 'focus') renderFocus();
+        return;
+      }
+      S.timer--;
+      const el = document.getElementById('t-num');
+      if (el) el.textContent = fmt(S.timer);
+    }, 1000);
+  } else {
+    clearInterval(S._tick); S._tick = null;
+  }
+  if (S.tab === 'focus') renderFocus();
+}
+function resetTimer()   { clearInterval(S._tick); S._tick=null; S.timerOn=false; S.timerMode='work'; S.timer=1500; if(S.tab==='focus')renderFocus(); }
+function setPreset(s)   { clearInterval(S._tick); S._tick=null; S.timerOn=false; S.timer=s; S.timerMode='work'; if(S.tab==='focus')renderFocus(); }
+function focusDone(id)  { markDone(id); S.focusIdx=0; S.nudge=NUDGES[Math.floor(Math.random()*NUDGES.length)]; if(S.tab==='focus')renderFocus(); updateBadges(); }
+function focusSkip(len) { S.focusIdx=(S.focusIdx+1)%len; S.nudge=NUDGES[Math.floor(Math.random()*NUDGES.length)]; if(S.tab==='focus')renderFocus(); }
+function focusBreak(id) {
+  const it = S.items.find(i=>i.id===id); if(!it)return;
+  switchTab('vault');
+  const inp = document.getElementById('main-input');
+  inp.value = `[sub: ${it.text}] `;
+  inp.focus();
+  document.getElementById('add-btn').className='add-btn rdy';
+}
+
+/* ═══════════════════════════════════════════════
+   SPEECH RECOGNITION
+═══════════════════════════════════════════════ */
+let _rec = null;
+let _recListening = false;
+
+(function initSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  _rec = new SR();
+  _rec.continuous = false;
+  _rec.interimResults = true;
+  _rec.lang = 'en-US';
+  _rec.onresult = e => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    const inp = document.getElementById('main-input');
+    if (inp) { inp.value = transcript; btn.className = transcript.trim() ? 'add-btn rdy' : 'add-btn off'; }
+  };
+  _rec.onend = () => { _recListening = false; syncMicBtn(); };
+  _rec.onerror = () => { _recListening = false; syncMicBtn(); };
+})();
+
+function toggleMic() {
+  if (!_rec) return;
+  if (_recListening) { _rec.stop(); }
+  else { try { _rec.start(); _recListening = true; syncMicBtn(); } catch { _recListening = false; } }
+}
+
+function syncMicBtn() {
+  const mb = document.getElementById('mic-btn');
+  if (!mb) return;
+  mb.classList.toggle('listening', _recListening);
+  mb.textContent = _recListening ? '🔴' : '🎙';
+}
+
+function updateMicVisibility() {
+  const mb = document.getElementById('mic-btn');
+  if (!mb || !_rec) return;
+  mb.classList.toggle('visible', S.tab === 'vault' || S.tab === 'projects');
+  if (S.tab !== 'vault' && S.tab !== 'projects' && _recListening) { _rec.stop(); }
+}
+
+/* ═══════════════════════════════════════════════
+   INPUT
+═══════════════════════════════════════════════ */
+const inp = document.getElementById('main-input');
+const btn = document.getElementById('add-btn');
+inp.addEventListener('input',  () => { btn.className = inp.value.trim() ? 'add-btn rdy' : 'add-btn off'; });
+inp.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); handleAdd(); } });
+
+function handleAdd() {
+  const val = inp.value.trim(); if (!val) return;
+  if (S.tab === 'projects') {
+    S.projects.push(makeProject(val));
+  } else if (S.tab === 'plan') {
+    S.items.push(makeItem(val, 'planned', 'med', S.activeBlock || 'morning'));
+  } else {
+    S.items.push(makeItem(val, 'vault'));
+  }
+  inp.value = ''; btn.className = 'add-btn off';
+  save(); renderAll();
+}
+
+/* ═══════════════════════════════════════════════
+   STICKIES
+═══════════════════════════════════════════════ */
+function toggleStickies() { document.getElementById('sticky-panel').classList.toggle('open'); }
+
+function addSticky() {
+  const ta = document.getElementById('sticky-ta');
+  const t  = ta.value.trim(); if (!t) return;
+  S.stickies.push(makeSticky(t)); ta.value = '';
+  save(); renderStickies(); updateBadges();
+}
+function delSticky(id) { S.stickies=S.stickies.filter(s=>s.id!==id); save(); renderStickies(); updateBadges(); }
+function renderStickies() {
+  document.getElementById('sticky-grid').innerHTML = S.stickies.map(s => `
+    <div class="sticky-note ${SC[s.color]||''}">
+      <span class="sn-x" onclick="delSticky('${esc(s.id)}')">✕</span>
+      ${esc(s.text).replace(/\n/g,'<br>')}
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════ */
+function switchTab(name) {
+  S.tab = name; S.promoOpen = null;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id==='tab-'+name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
+  renderAll();
+}
+
+/* ═══════════════════════════════════════════════
+   KEYBOARD
+═══════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('sticky-panel').classList.remove('open');
+    if (S.promoOpen) { S.promoOpen = null; if(S.tab==='vault') renderVault(); }
+  }
+  if ((e.metaKey||e.ctrlKey) && e.key==='k') {
+    e.preventDefault();
+    if (S.tab !== 'vault') switchTab('vault');
+    setTimeout(() => document.getElementById('main-input').focus(), 60);
+  }
+  if ((e.metaKey||e.ctrlKey) && e.key==='Enter') {
+    if (document.getElementById('sticky-panel').classList.contains('open')) { addSticky(); return; }
+    handleAdd();
+  }
+});
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+S.nudge = NUDGES[Math.floor(Math.random() * NUDGES.length)];
+load();
+checkNewDay();
+renderAll();
+renderStickies();
+
+// Register service worker for PWA / offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
 </body>
 </html>

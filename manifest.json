@@ -1,7 +1,7 @@
 {
   "name": "JR · Lumina Planner",
   "short_name": "Lumina",
-  "description": "Lumina Sanctorum daily planner — Vault, Plan, Projects, Focus",
+  "description": "Lumina Sanctorum — Vault, Plan, Projects, Tree",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",

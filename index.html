@@ -230,12 +230,14 @@ button{cursor:pointer}
 .day-pill:hover{border-color:var(--gold);color:var(--gold)}
 .day-picker{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .day-opt{
+  -webkit-appearance:none;appearance:none;
   padding:5px 9px;border-radius:7px;border:1px solid var(--tab-border);
-  background:rgba(18,45,85,0.50);color:var(--parch-muted);font-size:10px;
+  background:rgba(18,45,85,0.80);color:var(--parch-muted);font-size:10px;
   font-family:'JetBrains Mono',monospace;transition:all 0.15s;
 }
-.day-opt:hover{border-color:var(--cyan);color:var(--cyan)}
+.day-opt:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(18,45,85,0.90)}
 .day-opt.day-sel{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.day-opt.day-past{opacity:0.38;text-decoration:line-through}
 
 /* ── PROJECT CARD ──────────────────────────────────────── */
 .proj-card{
@@ -319,7 +321,9 @@ button{cursor:pointer}
   display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;
 }
 .add-btn.rdy{background:linear-gradient(135deg,var(--gold),#B8941E);box-shadow:0 4px 16px rgba(212,175,55,0.38);color:var(--abyss)}
-.add-btn.off{background:var(--cyan-dim);color:var(--cyan);opacity:0.5}
+.add-btn.off{background:var(--cyan-dim);color:var(--cyan);border:1px solid var(--cyan-mid)}
+.add-btn.listening{background:var(--danger-dim);border:1px solid rgba(239,68,68,0.4);color:var(--danger);animation:micPulse 1.5s ease-in-out infinite}
+.add-btn.no-mic{background:rgba(18,45,85,0.40);color:var(--parch-faint);border:1px solid var(--tab-border)}
 .add-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── MIC ───────────────────────────────────────────────── */
@@ -456,11 +460,9 @@ button{cursor:pointer}
 <div class="input-bar" id="input-bar">
   <div class="input-shell">
     <input id="main-input" autocomplete="off" spellcheck="false" placeholder="Capture a thought…">
-    <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice capture">
-      <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-    </button>
-    <button class="add-btn off" id="add-btn" onclick="handleAdd()">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <button class="add-btn off" id="add-btn" onclick="handleAddOrMic()">
+      <svg id="icon-plus" viewBox="0 0 24 24" style="display:none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <svg id="icon-mic" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </button>
   </div>
 </div>
@@ -838,16 +840,27 @@ function taskCardHTML(item) {
 }
 
 function dayPickHTML(id,cur) {
+  const todayDow = new Date().getDay(); // 0=Sun
   let h=`<div class="day-picker">`;
-  h+=`<button class="day-opt${cur===null||cur===undefined?' day-sel':''}" onclick="setDay('${esc(id)}',null)">Any</button>`;
+  h+=`<button class="day-opt${cur===null||cur===undefined?' day-sel':''}" onclick="setDay('${esc(id)}',null,null)">Any</button>`;
   DAYS.forEach((d,i)=>{
-    h+=`<button class="day-opt${cur===i?' day-sel':''}" onclick="setDay('${esc(id)}',${i})">${d}</button>`;
+    // A day is "past this week" if it's before today's DOW. Sunday=0 means all Mon-Sat are past.
+    const isPast = i < todayDow || todayDow === 0 && i !== 0;
+    const isSel = cur===i;
+    h+=`<button class="day-opt${isSel?' day-sel':''}${isPast&&!isSel?' day-past':''}"
+      onclick="setDay('${esc(id)}',${i},${isPast?true:false})">${d}${isPast?'*':''}</button>`;
   });
+  h+=`<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--parch-faint);width:100%;padding-top:4px">* past days auto-assigned to next week</div>`;
   return h+'</div>';
 }
 
 function toggleDayPick(id){ _dayPick=_dayPick===id?null:id; renderPlan(); }
-function setDay(id,day){ S.items=S.items.map(i=>i.id===id?{...i,day}:i); _dayPick=null; save(); renderPlan(); }
+function setDay(id,day,isPast){
+  // If day has already passed this week, bump to next week automatically
+  const newWeek = isPast ? 'next' : S.planWeek;
+  S.items=S.items.map(i=>i.id===id?{...i,day,week:newWeek}:i);
+  _dayPick=null; save(); renderPlan();
+}
 function setPlanWeek(w){ S.planWeek=w; renderPlan(); }
 function markDone(id){ S.items=S.items.map(i=>i.id===id?{...i,status:'done'}:i); save(); renderAll(); }
 function undone(id)  { S.items=S.items.map(i=>i.id===id?{...i,status:'planned',week:S.planWeek}:i); save(); renderAll(); }
@@ -1224,9 +1237,8 @@ function attachTreeEvents(W,H,edges){
    SPEECH
 ═══════════════════════════════════════════════ */
 let _rec=null,_recOn=false;
-(function initSpeech(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR)return;
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){
   try{
     _rec=new SR();
     _rec.continuous=false;
@@ -1235,13 +1247,11 @@ let _rec=null,_recOn=false;
     _rec.onresult=e=>{
       const txt=Array.from(e.results).map(r=>r[0].transcript).join('');
       const inp=document.getElementById('main-input');
-      const btn=document.getElementById('add-btn');
-      if(inp)inp.value=txt;
-      if(btn)btn.className=txt.trim()?'add-btn rdy':'add-btn off';
+      if(inp){ inp.value=txt; syncBtn(); }
     };
-    _rec.onend=()=>{ _recOn=false; syncMic(); };
+    _rec.onend=()=>{ _recOn=false; syncBtn(); };
     _rec.onerror=ev=>{
-      _recOn=false; syncMic();
+      _recOn=false; syncBtn();
       const msgs={
         'not-allowed':'Mic access denied. Enable it in browser settings.',
         'no-speech':'No speech detected. Try again.',
@@ -1250,24 +1260,55 @@ let _rec=null,_recOn=false;
       showMicErr(msgs[ev.error]||'Voice capture failed. Use text input.');
     };
   }catch{ _rec=null; }
-})();
+}
 
 function toggleMic(){
-  if(!_rec){ showMicErr('Voice not supported in this browser. Use Chrome.'); return; }
+  if(!_rec){ showMicErr('Voice not supported. Use Chrome.'); return; }
   if(_recOn){ _rec.stop(); }
-  else{ try{ _rec.start();_recOn=true;syncMic();hideMicErr(); }catch(e){_recOn=false;syncMic();} }
+  else{ try{ _rec.start();_recOn=true;syncBtn();hideMicErr(); }catch(e){_recOn=false;syncBtn();} }
 }
-function syncMic(){
-  const mb=document.getElementById('mic-btn');
-  if(mb)mb.classList.toggle('listening',_recOn);
+
+// Sync the single add/mic button state
+function syncBtn(){
+  const inp=document.getElementById('main-input');
+  const btn=document.getElementById('add-btn');
+  const plus=document.getElementById('icon-plus');
+  const mic=document.getElementById('icon-mic');
+  if(!btn)return;
+  const hasText=inp&&inp.value.trim().length>0;
+  const micAvail=!!_rec;
+  const showOnThisTab=(S.tab==='vault'||S.tab==='projects');
+
+  if(_recOn){
+    btn.className='add-btn listening';
+    if(plus)plus.style.display='none';
+    if(mic)mic.style.display='';
+    return;
+  }
+  if(hasText){
+    btn.className='add-btn rdy';
+    if(plus)plus.style.display='';
+    if(mic)mic.style.display='none';
+    return;
+  }
+  // Empty input
+  if(micAvail&&showOnThisTab){
+    btn.className='add-btn off';
+    if(plus)plus.style.display='none';
+    if(mic)mic.style.display='';
+  } else if(S.tab==='plan'){
+    btn.className='add-btn no-mic';
+    if(plus)plus.style.display='';
+    if(mic)mic.style.display='none';
+  } else {
+    btn.className='add-btn off';
+    if(plus)plus.style.display='none';
+    if(mic)mic.style.display='';
+  }
 }
-function updateMicVisibility(){
-  const mb=document.getElementById('mic-btn');
-  if(!mb)return;
-  const show=(S.tab==='vault'||S.tab==='projects')&&!!_rec;
-  mb.classList.toggle('visible',show);
-  if(!show&&_recOn&&_rec)_rec.stop();
-}
+
+function updateMicVisibility(){ syncBtn(); }
+
 let _errT=null;
 function showMicErr(msg){
   const el=document.getElementById('mic-err');
@@ -1281,14 +1322,22 @@ function hideMicErr(){ const el=document.getElementById('mic-err');if(el)el.clas
 ═══════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded',()=>{
   const inp=document.getElementById('main-input');
-  const btn=document.getElementById('add-btn');
-  inp.addEventListener('input',()=>{ btn.className=inp.value.trim()?'add-btn rdy':'add-btn off'; });
-  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAdd();} });
+  inp.addEventListener('input',syncBtn);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleAddOrMic();} });
+  syncBtn();
 });
+
+function handleAddOrMic(){
+  const inp=document.getElementById('main-input');
+  if(inp&&inp.value.trim()){
+    handleAdd();
+  } else {
+    toggleMic();
+  }
+}
 
 function handleAdd(){
   const inp=document.getElementById('main-input');
-  const btn=document.getElementById('add-btn');
   const raw=inp.value.trim();if(!raw)return;
   const {text,tag}=parseTag(raw);
   if(tag)ensureTag(tag);
@@ -1299,7 +1348,8 @@ function handleAdd(){
   } else {
     S.items.push(makeItem(text,'vault','med',{tag}));
   }
-  inp.value='';btn.className='add-btn off';
+  if(_recOn&&_rec)_rec.stop();
+  inp.value='';syncBtn();
   save();renderAll();
 }
 
@@ -1355,8 +1405,9 @@ function ndDo(mode,undone,today){
    INIT
 ═══════════════════════════════════════════════ */
 load();
+S.tab = S.tab || 'vault'; // default to vault on fresh install
 checkNewDay();
-renderAll();
+switchTab(S.tab);  // syncs panel visibility + tab active classes
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }

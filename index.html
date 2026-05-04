@@ -421,7 +421,71 @@ button{cursor:pointer}
 .ns-do{background:var(--gold);color:var(--abyss);font-weight:700}
 .ns-no{background:rgba(125,249,255,0.05);color:var(--parch-muted);border:1px solid var(--tab-border)!important;border:none}
 
-/* ── MISC ──────────────────────────────────────────────── */
+/* ── VAULT CAPTURE BAR ─────────────────────────────────── */
+#vault-capture{
+  position:fixed;bottom:68px;left:0;right:0;max-width:480px;margin:0 auto;
+  flex-direction:column;align-items:center;gap:10px;
+  padding:16px 24px 12px;
+  background:linear-gradient(transparent,var(--abyss) 50%);
+  z-index:40;
+}
+.vault-mic-row{display:flex;align-items:center;justify-content:center;gap:20px;width:100%}
+.vault-big-mic{
+  width:88px;height:88px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,#B8941E,var(--gold));
+  color:var(--abyss);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 28px var(--gold-glow),0 0 56px rgba(212,175,55,0.22),0 4px 20px rgba(0,0,0,0.30);
+  transition:transform 0.18s,box-shadow 0.18s;
+}
+.vault-big-mic:active{transform:scale(0.92)}
+.vault-big-mic.listening{
+  background:linear-gradient(135deg,#c0392b,var(--danger));
+  color:#fff;
+  box-shadow:0 0 32px rgba(239,68,68,0.55),0 0 64px rgba(239,68,68,0.22),0 4px 20px rgba(0,0,0,0.30);
+  animation:bigMicPulse 1.4s ease-in-out infinite;
+}
+.vault-kb-btn{
+  width:44px;height:44px;border-radius:14px;border:1px solid var(--tab-border);
+  background:var(--glass);color:var(--parch-muted);
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:all 0.15s;
+}
+.vault-kb-btn.active{border-color:var(--cyan-mid);color:var(--cyan);background:var(--cyan-dim)}
+.vault-type-wrap{
+  width:100%;display:flex;align-items:center;gap:8px;
+  background:var(--glass);border:1px solid var(--gb-gold);
+  border-radius:14px;padding:6px 6px 6px 16px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  animation:fadeIn 0.18s ease;
+}
+.vault-type-input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--parchment);font-size:15px;min-height:40px;
+  caret-color:var(--gold);font-family:'Outfit',sans-serif;
+}
+.vault-type-input::placeholder{color:var(--parch-faint)}
+.big-mic-btn{
+  width:110px;height:110px;border-radius:50%;border:none;
+  background:var(--glass);
+  border:2px solid var(--cyan-mid);
+  color:var(--cyan);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 36px var(--cyan-dim),inset 0 0 20px rgba(125,249,255,0.05);
+  transition:all 0.22s;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+.big-mic-btn:active{transform:scale(0.93)}
+.big-mic-btn.listening{
+  border-color:rgba(239,68,68,0.6);color:var(--danger);
+  box-shadow:0 0 48px rgba(239,68,68,0.30),inset 0 0 22px rgba(239,68,68,0.08);
+  animation:bigMicPulse 1.4s ease-in-out infinite;
+}
+@keyframes bigMicPulse{
+  0%,100%{box-shadow:0 0 30px rgba(239,68,68,0.22),inset 0 0 14px rgba(239,68,68,0.06)}
+  50%    {box-shadow:0 0 60px rgba(239,68,68,0.50),inset 0 0 26px rgba(239,68,68,0.12)}
+}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 .ai{animation:fadeIn 0.2s ease both}
 </style>
@@ -467,6 +531,30 @@ button{cursor:pointer}
   </div>
 </div>
 <div class="mic-err" id="mic-err"></div>
+
+<!-- VAULT CAPTURE BAR -->
+<div id="vault-capture" style="display:none">
+  <div id="vault-type-wrap" class="vault-type-wrap" style="display:none">
+    <input id="vault-type-input" class="vault-type-input" autocomplete="off" spellcheck="false" placeholder="Type a thought… (#tag optional)">
+    <button class="ibtn" onclick="vaultTypeSubmit()" style="color:var(--gold)">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+    </button>
+  </div>
+  <div class="vault-mic-row">
+    <button class="vault-kb-btn" id="vault-kb-btn" onclick="toggleVaultType()" title="Type instead">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="6" y1="14" x2="18" y2="14"/></svg>
+    </button>
+    <button class="vault-big-mic" id="vault-big-mic" onclick="toggleMic()">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <div style="width:44px"></div><!-- spacer to center mic -->
+  </div>
+</div>
 
 <!-- TAB BAR -->
 <nav class="tab-bar">
@@ -653,7 +741,8 @@ function renderAll() {
   if (S.tab==='projects') renderProjects();
   if (S.tab==='tree')     renderTree();
   updateBadges();
-  document.getElementById('input-bar').classList.toggle('hidden',S.tab==='tree');
+  document.getElementById('input-bar').classList.toggle('hidden',S.tab==='tree'||S.tab==='vault');
+  document.getElementById('vault-capture').style.display=S.tab==='vault'?'flex':'none';
   updateMicVisibility();
   const ph={vault:'Capture a thought… (or #tag it)',plan:'Add to plan…',projects:'New project… (#tag optional)'}[S.tab]||'';
   const inp=document.getElementById('main-input');
@@ -688,14 +777,17 @@ function updateBadges() {
 function renderVault() {
   const panel=document.getElementById('panel-vault');
   const items=S.items.filter(i=>i.status==='vault');
+
   if (!items.length) {
-    panel.innerHTML=`<div class="empty ai">
+    panel.innerHTML=`<div class="empty ai" style="padding-bottom:180px">
       <div class="empty-icon">⬡</div>
       <div class="empty-title">The Vault awaits.</div>
-      <div class="empty-sub">Capture ideas below — raw, unfiltered.<br>Use #tag to label on the fly. Promote when ready.</div>
-    </div>`; return;
+      <div class="empty-sub">Tap the mic to speak — or the keyboard to type.<br>Use #tag to label on the fly. Promote when ready.</div>
+    </div>`;
+    return;
   }
-  let html=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 12px">
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 12px">
     <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--parch-muted)">${items.length} captured</span>
     <button onclick="clearVault()" style="background:none;border:none;color:var(--parch-muted);font-size:11px">Clear all</button>
   </div>`;
@@ -718,7 +810,7 @@ function renderVault() {
       </div>
     </div>`;
   });
-  panel.innerHTML=html;
+  panel.innerHTML=`<div style="padding-bottom:180px">${html}</div>`;
 }
 
 function promoHTML(id) {
@@ -1246,12 +1338,23 @@ if(SR){
     _rec.lang='en-US';
     _rec.onresult=e=>{
       const txt=Array.from(e.results).map(r=>r[0].transcript).join('');
-      const inp=document.getElementById('main-input');
-      if(inp){ inp.value=txt; syncBtn(); }
+      const isFinal=e.results[e.results.length-1].isFinal;
+      if(S.tab==='vault'){
+        // Show in type input as preview; auto-submit on final
+        if(!_vaultTypeOpen) toggleVaultType();
+        const vi=document.getElementById('vault-type-input');
+        if(vi) vi.value=txt;
+        if(isFinal&&txt.trim()){
+          setTimeout(()=>{ vaultTypeSubmit(); if(_vaultTypeOpen)toggleVaultType(); },300);
+        }
+      } else {
+        const inp=document.getElementById('main-input');
+        if(inp){ inp.value=txt; syncBtn(); }
+      }
     };
-    _rec.onend=()=>{ _recOn=false; syncBtn(); };
+    _rec.onend=()=>{ _recOn=false; syncBtn(); syncBigMic(); };
     _rec.onerror=ev=>{
-      _recOn=false; syncBtn();
+      _recOn=false; syncBtn(); syncBigMic();
       const msgs={
         'not-allowed':'Mic access denied. Enable it in browser settings.',
         'no-speech':'No speech detected. Try again.',
@@ -1265,7 +1368,7 @@ if(SR){
 function toggleMic(){
   if(!_rec){ showMicErr('Voice not supported. Use Chrome.'); return; }
   if(_recOn){ _rec.stop(); }
-  else{ try{ _rec.start();_recOn=true;syncBtn();hideMicErr(); }catch(e){_recOn=false;syncBtn();} }
+  else{ try{ _rec.start();_recOn=true;syncBtn();syncBigMic();hideMicErr(); }catch(e){_recOn=false;syncBtn();syncBigMic();} }
 }
 
 // Sync the single add/mic button state
@@ -1307,7 +1410,40 @@ function syncBtn(){
   }
 }
 
-function updateMicVisibility(){ syncBtn(); }
+function syncBigMic(){
+  const b=document.getElementById('vault-big-mic');
+  if(b) b.classList.toggle('listening',_recOn);
+}
+
+let _vaultTypeOpen=false;
+function toggleVaultType(){
+  _vaultTypeOpen=!_vaultTypeOpen;
+  const wrap=document.getElementById('vault-type-wrap');
+  const kb=document.getElementById('vault-kb-btn');
+  if(wrap) wrap.style.display=_vaultTypeOpen?'flex':'none';
+  if(kb) kb.classList.toggle('active',_vaultTypeOpen);
+  if(_vaultTypeOpen){
+    const inp=document.getElementById('vault-type-input');
+    if(inp) setTimeout(()=>inp.focus(),60);
+  }
+}
+function vaultTypeSubmit(){
+  const inp=document.getElementById('vault-type-input');
+  if(!inp||!inp.value.trim())return;
+  const {text,tag}=parseTag(inp.value.trim());
+  if(tag)ensureTag(tag);
+  S.items.push(makeItem(text,'vault','med',{tag}));
+  inp.value='';
+  save();renderVault();
+}
+// Allow Enter key in vault type input
+document.addEventListener('keydown',e=>{
+  if(e.target&&e.target.id==='vault-type-input'&&e.key==='Enter'){
+    e.preventDefault();vaultTypeSubmit();
+  }
+});
+
+function updateMicVisibility(){ syncBtn(); syncBigMic(); }
 
 let _errT=null;
 function showMicErr(msg){

@@ -22,8 +22,8 @@ icon-512.png    — splash icon
 ## THE ONE RULE
 
 **Every file change = bump `sw.js` cache version in the same commit.**
-Current version: `lumina-v11`
-Pattern: `const CACHE = 'lumina-v11';` → increment to `v12`, `v13`, etc.
+Current version: `lumina-v20`
+Pattern: `const CACHE = 'lumina-v20';` → increment to `v21`, `v22`, etc.
 Failure to do this means users get stale cached builds. No exceptions.
 
 ---

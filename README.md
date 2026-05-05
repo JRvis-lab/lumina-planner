@@ -66,7 +66,7 @@ Everything needed to run the app lives in `index.html`. The other files are the 
 ```
 index.html      — Entire app (HTML + CSS + JS, single file, no build step)
 manifest.json   — PWA manifest (name, icons, display mode, theme colour)
-sw.js           — Service worker (cache: lumina-v10, offline support)
+sw.js           — Service worker (cache: lumina-v20, offline support)
 icon-192.png    — App icon 192×192 (Android home screen)
 icon-512.png    — App icon 512×512 (splash screens)
 ```

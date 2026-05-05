@@ -172,6 +172,64 @@ button{cursor:pointer}
 }
 .tag-pick-item:active,.tag-pick-item:hover{background:var(--gold-dim)}
 .tag-pick-item.danger{color:var(--danger)}
+.tag-pick-item.manage{color:var(--gold);border-top:1px solid var(--gold-dim);margin-top:2px;padding-top:9px}
+
+/* ── TAG MANAGER MODAL ───────────────────────────────── */
+#tm-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;
+  align-items:center;justify-content:center;padding:24px;
+}
+#tm-overlay.open{display:flex}
+.tm-card{
+  background:var(--abyss-mid);border:1px solid var(--gold-mid);border-radius:16px;
+  padding:20px;width:100%;max-width:380px;max-height:80vh;display:flex;flex-direction:column;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);
+}
+.tm-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);margin-bottom:14px}
+.tm-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px}
+.tm-row{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;
+  background:rgba(10,25,49,0.5);border:1px solid transparent;
+}
+.tm-row:hover{border-color:var(--gold-dim)}
+.tm-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tm-name{flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--parchment)}
+.tm-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--parch-muted);margin-right:4px}
+.tm-act{
+  background:none;border:none;padding:4px 6px;font-size:13px;cursor:pointer;
+  color:var(--parch-muted);border-radius:6px;
+}
+.tm-act:active{opacity:0.6}
+.tm-act.del{color:var(--danger)}
+.tm-rename-input{
+  flex:1;background:var(--abyss);border:1px solid var(--gold-mid);border-radius:6px;
+  padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--parchment);
+  outline:none;
+}
+.tm-rename-input:focus{border-color:var(--gold)}
+.tm-merge-row{
+  display:flex;align-items:center;gap:6px;padding:10px 0 4px;
+  border-top:1px solid var(--gold-dim);margin-top:8px;
+}
+.tm-merge-sel{
+  flex:1;background:var(--abyss);border:1px solid var(--gold-mid);border-radius:8px;
+  padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--parchment);
+  outline:none;-webkit-appearance:none;
+}
+.tm-merge-btn{
+  background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);
+  border-radius:8px;padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  cursor:pointer;white-space:nowrap;
+}
+.tm-merge-btn:active{opacity:0.7}
+.tm-merge-btn:disabled{opacity:0.3;cursor:default}
+.tm-close{
+  background:none;border:1px solid var(--parch-faint);color:var(--parch-muted);
+  border-radius:10px;padding:8px;font-size:12px;margin-top:12px;cursor:pointer;width:100%;
+  font-family:'Outfit',sans-serif;
+}
+.tm-close:active{opacity:0.7}
+.tm-empty{font-size:12px;color:var(--parch-faint);padding:20px 0;text-align:center}
 
 /* ── PRIORITY STAR ─────────────────────────────────────── */
 .prio-btn{
@@ -630,6 +688,16 @@ button{cursor:pointer}
   </div>
 </div>
 
+<!-- TAG MANAGER MODAL -->
+<div id="tm-overlay" onclick="closeTagMgr()">
+  <div class="tm-card" onclick="event.stopPropagation()">
+    <div class="tm-title"># Tag Manager</div>
+    <div class="tm-list" id="tm-list"></div>
+    <div id="tm-merge"></div>
+    <button class="tm-close" onclick="closeTagMgr()">Close</button>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════════════════════
    CONSTANTS
@@ -790,6 +858,7 @@ function tagPickerHTML(currentTag){
   if(!S.tags.length && !currentTag){
     h+=`<div style="padding:8px 10px;font-size:11px;color:var(--parch-faint)">No tags yet — add with #tag</div>`;
   }
+  h+=`<button class="tag-pick-item manage" onclick="event.stopPropagation();_tagEdit=null;reRenderTab();openTagMgr()">⚙ Manage tags</button>`;
   h+='</div>';
   return h;
 }
@@ -800,10 +869,103 @@ function reRenderTab(){
 }
 document.addEventListener('click',()=>{if(_tagEdit){_tagEdit=null;reRenderTab();}});
 
+/* ── TAG MANAGER ─────────────────────────────────────── */
+let _tmRenaming=null;
+function tagUsageCount(tag){
+  return S.items.filter(i=>i.tag===tag).length + S.projects.filter(p=>p.tag===tag).length;
+}
+function openTagMgr(){
+  _tmRenaming=null;
+  renderTagMgr();
+  document.getElementById('tm-overlay').classList.add('open');
+}
+function closeTagMgr(){
+  document.getElementById('tm-overlay').classList.remove('open');
+  _tmRenaming=null;
+  reRenderTab();
+}
+function renderTagMgr(){
+  const list=document.getElementById('tm-list');
+  const merge=document.getElementById('tm-merge');
+  if(!S.tags.length){
+    list.innerHTML='<div class="tm-empty">No tags yet — add with #tag when creating items.</div>';
+    merge.innerHTML='';
+    return;
+  }
+  let h='';
+  S.tags.slice().sort().forEach(t=>{
+    const c=tagColor(t);
+    const cnt=tagUsageCount(t);
+    if(_tmRenaming===t){
+      h+=`<div class="tm-row">
+        <span class="tm-dot" style="background:${c}"></span>
+        <input class="tm-rename-input" id="tm-ren-inp" value="${esc(t)}" onkeydown="if(event.key==='Enter')tmDoRename('${esc(t)}')">
+        <button class="tm-act" onclick="tmDoRename('${esc(t)}')" title="Save">✓</button>
+        <button class="tm-act" onclick="_tmRenaming=null;renderTagMgr()" title="Cancel">✕</button>
+      </div>`;
+    } else {
+      h+=`<div class="tm-row">
+        <span class="tm-dot" style="background:${c}"></span>
+        <span class="tm-name">${esc(t)}</span>
+        <span class="tm-count">${cnt}</span>
+        <button class="tm-act" onclick="tmStartRename('${esc(t)}')" title="Rename">✎</button>
+        <button class="tm-act del" onclick="tmDelete('${esc(t)}')" title="Delete">✕</button>
+      </div>`;
+    }
+  });
+  list.innerHTML=h;
+  // Merge UI — only if 2+ tags
+  if(S.tags.length>=2){
+    let mh=`<div class="tm-merge-row">
+      <select class="tm-merge-sel" id="tm-merge-from"><option value="">From…</option>`;
+    S.tags.slice().sort().forEach(t=>{ mh+=`<option value="${esc(t)}">${esc(t)}</option>`; });
+    mh+=`</select><span style="color:var(--parch-faint);font-size:12px">→</span>
+      <select class="tm-merge-sel" id="tm-merge-into"><option value="">Into…</option>`;
+    S.tags.slice().sort().forEach(t=>{ mh+=`<option value="${esc(t)}">${esc(t)}</option>`; });
+    mh+=`</select><button class="tm-merge-btn" onclick="tmMerge()">Merge</button></div>`;
+    merge.innerHTML=mh;
+  } else { merge.innerHTML=''; }
+  // Focus rename input if open
+  const ri=document.getElementById('tm-ren-inp');
+  if(ri){ri.focus();ri.select();}
+}
+function tmStartRename(tag){ _tmRenaming=tag; renderTagMgr(); }
+function tmDoRename(oldTag){
+  const inp=document.getElementById('tm-ren-inp');
+  if(!inp)return;
+  const nw=inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  if(!nw||nw===oldTag){ _tmRenaming=null; renderTagMgr(); return; }
+  // Update all items + projects
+  S.items=S.items.map(i=>i.tag===oldTag?{...i,tag:nw}:i);
+  S.projects=S.projects.map(p=>p.tag===oldTag?{...p,tag:nw}:p);
+  // Update tag registry (merge if target exists)
+  S.tags=S.tags.filter(t=>t!==oldTag);
+  if(!S.tags.includes(nw)) S.tags.push(nw);
+  _tmRenaming=null;
+  save(); renderTagMgr();
+}
+function tmDelete(tag){
+  if(!confirm('Delete tag "'+tag+'"? It will be removed from all items and projects.')) return;
+  S.items=S.items.map(i=>i.tag===tag?{...i,tag:null}:i);
+  S.projects=S.projects.map(p=>p.tag===tag?{...p,tag:null}:p);
+  S.tags=S.tags.filter(t=>t!==tag);
+  save(); renderTagMgr();
+}
+function tmMerge(){
+  const from=document.getElementById('tm-merge-from').value;
+  const into=document.getElementById('tm-merge-into').value;
+  if(!from||!into||from===into){ return; }
+  if(!confirm('Merge "'+from+'" into "'+into+'"? All items tagged "'+from+'" will become "'+into+'".')) return;
+  S.items=S.items.map(i=>i.tag===from?{...i,tag:into}:i);
+  S.projects=S.projects.map(p=>p.tag===from?{...p,tag:into}:p);
+  S.tags=S.tags.filter(t=>t!==from);
+  save(); renderTagMgr();
+}
+
 /* ── TAG AUTOCOMPLETE ─────────────────────────────────── */
 function initTagAutocomplete(inp){
   inp.addEventListener('input',()=>showTagSuggest(inp));
-  inp.addEventListener('blur',()=>setTimeout(hideTagSuggest,150));
+  inp.addEventListener('blur',()=>setTimeout(hideTagSuggest,250));
   inp.addEventListener('keydown',e=>{
     if(e.key==='Escape') hideTagSuggest();
   });
@@ -819,10 +981,10 @@ function showTagSuggest(inp){
   let h='';
   matches.forEach(t=>{
     const c=tagColor(t);
-    h+=`<button class="tag-sug-item" onmousedown="event.preventDefault();completeTag('${inp.id}','${esc(t)}')"><span class="tag-sug-dot" style="background:${c}"></span>${esc(t)}</button>`;
+    h+=`<button class="tag-sug-item" onclick="completeTag('${inp.id}','${esc(t)}')"><span class="tag-sug-dot" style="background:${c}"></span>${esc(t)}</button>`;
   });
   el.innerHTML=h;
-  // Position above the input's parent bar
+  // Position above the input
   const rect=inp.getBoundingClientRect();
   el.style.bottom=(window.innerHeight-rect.top+6)+'px';
   el.classList.add('open');
@@ -1447,19 +1609,18 @@ if(SR){
     _rec.interimResults=true;
     _rec.lang='en-US';
     _rec.onresult=e=>{
-      const txt=Array.from(e.results).map(r=>r[0].transcript).join('');
+      let txt=Array.from(e.results).map(r=>r[0].transcript).join('');
       const isFinal=e.results[e.results.length-1].isFinal;
+      // Convert spoken "hashtag word" → "#word"
+      if(isFinal) txt=txt.replace(/\bhashtag\s+(\w+)/gi,(_,w)=>'#'+w.toLowerCase());
       if(S.tab==='vault'){
-        // Show in type input as preview; auto-submit on final
+        // Show in type input for review — user submits manually
         if(!_vaultTypeOpen) toggleVaultType();
         const vi=document.getElementById('vault-type-input');
-        if(vi) vi.value=txt;
-        if(isFinal&&txt.trim()){
-          setTimeout(()=>{ vaultTypeSubmit(); if(_vaultTypeOpen)toggleVaultType(); },300);
-        }
+        if(vi){ vi.value=txt; if(isFinal) vi.focus(); }
       } else {
         const inp=document.getElementById('main-input');
-        if(inp){ inp.value=txt; syncBtn(); }
+        if(inp){ inp.value=txt; syncBtn(); if(isFinal) inp.focus(); }
       }
     };
     _rec.onstart=()=>{ _recPending=false; _recOn=true; syncBtn(); syncBigMic(); hideMicErr(); };

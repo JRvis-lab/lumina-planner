@@ -137,17 +137,13 @@ button{cursor:pointer}
   border:1px solid;opacity:0.85;white-space:nowrap;
 }
 
-/* ── PRIORITY BADGE ────────────────────────────────────── */
+/* ── PRIORITY STAR ─────────────────────────────────────── */
 .prio-btn{
-  border-radius:8px;padding:4px 9px;font-size:10px;font-weight:600;
-  text-transform:uppercase;border-width:1px;border-style:solid;
-  font-family:'JetBrains Mono',monospace;min-height:30px;letter-spacing:0.04em;
-  transition:opacity 0.15s;white-space:nowrap;flex-shrink:0;
+  background:none;border:none;padding:4px 6px;font-size:18px;
+  min-height:30px;transition:opacity 0.15s;flex-shrink:0;
+  cursor:pointer;line-height:1;
 }
 .prio-btn:active{opacity:0.7}
-.p-low {background:var(--em-dim);    border-color:var(--emerald);color:#4ADE80}
-.p-med {background:var(--gold-dim);  border-color:var(--gold);   color:#FBBF24}
-.p-high{background:var(--danger-dim);border-color:var(--danger); color:#F87171}
 
 /* ── ICON BUTTON ───────────────────────────────────────── */
 .ibtn{
@@ -356,19 +352,18 @@ button{cursor:pointer}
 }
 .tab-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;padding:5px 4px;border:1px solid transparent;border-radius:13px;
-  background:none;min-height:58px;color:var(--parch-muted);
+  gap:0;padding:8px 4px;border:1px solid transparent;border-radius:13px;
+  background:none;min-height:44px;color:var(--parch-muted);
   transition:all 0.22s ease;position:relative;
 }
-.tab-btn.active{background:var(--cyan-dim);border-color:var(--cyan-mid);color:var(--cyan-bright)}
-@keyframes cyanPulse{
-  0%,100%{box-shadow:0 0 10px rgba(125,249,255,0.18),inset 0 0 6px rgba(125,249,255,0.06)}
-  50%    {box-shadow:0 0 26px rgba(125,249,255,0.42),inset 0 0 10px rgba(125,249,255,0.12)}
+.tab-btn.active{background:var(--gold-dim);border-color:var(--gold-mid);color:var(--gold)}
+@keyframes goldPulse{
+  0%,100%{box-shadow:0 0 10px rgba(212,175,55,0.18),inset 0 0 6px rgba(212,175,55,0.06)}
+  50%    {box-shadow:0 0 26px rgba(212,175,55,0.42),inset 0 0 10px rgba(212,175,55,0.12)}
 }
-.tab-btn.active{animation:cyanPulse 2.8s ease-in-out infinite}
-.tab-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center}
-.tab-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke 0.22s}
-.tab-lbl{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em;text-transform:uppercase}
+.tab-btn.active{animation:goldPulse 2.8s ease-in-out infinite}
+.tab-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke 0.22s}
 .tab-badge{
   position:absolute;top:4px;right:5px;
   background:var(--cyan);color:var(--abyss);
@@ -560,22 +555,18 @@ button{cursor:pointer}
 <nav class="tab-bar">
   <button class="tab-btn active" id="tab-vault" onclick="switchTab('vault')">
     <div class="tab-icon"><svg viewBox="0 0 24 24"><polygon points="12,2 22,9 19,21 5,21 2,9"/></svg></div>
-    <span class="tab-lbl">Vault</span>
     <span class="tab-badge" id="tb-vault"></span>
   </button>
   <button class="tab-btn" id="tab-plan" onclick="switchTab('plan')">
     <div class="tab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-    <span class="tab-lbl">Plan</span>
     <span class="tab-badge" id="tb-plan"></span>
   </button>
   <button class="tab-btn" id="tab-projects" onclick="switchTab('projects')">
     <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
-    <span class="tab-lbl">Projects</span>
     <span class="tab-badge" id="tb-projects"></span>
   </button>
   <button class="tab-btn" id="tab-tree" onclick="switchTab('tree')">
     <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="13" x2="5" y2="17"/><line x1="12" y1="13" x2="19" y2="17"/></svg></div>
-    <span class="tab-lbl">Tree</span>
   </button>
 </nav>
 
@@ -610,9 +601,9 @@ const SKEY = 'jr-lumina-v2';
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const PRIO_NEXT = {low:'med',med:'high',high:'low'};
 const PRIO_S = {
-  low:  {bg:'var(--em-dim)',    border:'var(--emerald)',color:'#4ADE80',lbl:'LOW'},
-  med:  {bg:'var(--gold-dim)',  border:'var(--gold)',   color:'#FBBF24',lbl:'MED'},
-  high: {bg:'var(--danger-dim)',border:'var(--danger)', color:'#F87171',lbl:'HIGH'},
+  low:  {bg:'var(--em-dim)',    border:'var(--emerald)',color:'#4ADE80'},
+  med:  {bg:'var(--gold-dim)',  border:'var(--gold)',   color:'#FBBF24'},
+  high: {bg:'var(--danger-dim)',border:'var(--danger)', color:'#F87171'},
 };
 
 /* ═══════════════════════════════════════════════
@@ -658,14 +649,14 @@ const parseTag = raw => {
 /* ═══════════════════════════════════════════════
    FACTORIES
 ═══════════════════════════════════════════════ */
-const makeItem = (text,status='vault',priority='med',opts={}) => ({
+const makeItem = (text,status='vault',priority='low',opts={}) => ({
   id:uid(),text:text.trim(),created:new Date().toISOString(),
   status,priority,tag:opts.tag||null,parentProject:opts.parentProject||null,
   week:opts.week||null,day:opts.day??null,
 });
 const makeProject = (text,opts={}) => ({
   id:uid(),text:text.trim(),created:new Date().toISOString(),
-  priority:opts.priority||'med',tag:opts.tag||null,children:[],links:[],
+  priority:opts.priority||'low',tag:opts.tag||null,children:[],links:[],
 });
 
 /* ═══════════════════════════════════════════════
@@ -719,8 +710,8 @@ const GEM = `<div class="gem-wrap"><svg viewBox="0 0 20 22" xmlns="http://www.w3
    HELPERS
 ═══════════════════════════════════════════════ */
 function prioBadge(p,id,fn) {
-  const ps=PRIO_S[p]||PRIO_S.med;
-  return `<button class="prio-btn p-${esc(p)}" onclick="${fn}('${esc(id)}')" style="background:${ps.bg};border-color:${ps.border};color:${ps.color}">${ps.lbl}</button>`;
+  const ps=PRIO_S[p]||PRIO_S.low;
+  return `<button class="prio-btn" onclick="${fn}('${esc(id)}')" style="color:${ps.color}">★</button>`;
 }
 function tagChip(tag) {
   if (!tag) return '';
@@ -911,7 +902,7 @@ function renderPlan() {
 }
 
 function taskCardHTML(item) {
-  const ps=PRIO_S[item.priority]||PRIO_S.med;
+  const ps=PRIO_S[item.priority]||PRIO_S.low;
   const dayLbl=item.day!==null&&item.day!==undefined?DAYS[item.day]:'—';
   const showPick=_dayPick===item.id;
   return `<div class="task-card" style="border-left:3px solid ${ps.border}" id="tc-${esc(item.id)}">
@@ -1061,7 +1052,7 @@ function childKey(e,projId){
     const ci=document.getElementById('ci-'+projId);
     if (!ci||!ci.value.trim()) { _childInput=null; renderProjects(); return; }
     const {text,tag}=parseTag(ci.value);
-    const item=makeItem(text,'child','med',{parentProject:projId,tag});
+    const item=makeItem(text,'child','low',{parentProject:projId,tag});
     S.items.push(item);
     const proj=S.projects.find(p=>p.id===projId);
     if (proj&&!proj.children.includes(item.id)) proj.children.push(item.id);
@@ -1432,7 +1423,7 @@ function vaultTypeSubmit(){
   if(!inp||!inp.value.trim())return;
   const {text,tag}=parseTag(inp.value.trim());
   if(tag)ensureTag(tag);
-  S.items.push(makeItem(text,'vault','med',{tag}));
+  S.items.push(makeItem(text,'vault','low',{tag}));
   inp.value='';
   save();renderVault();
 }
@@ -1480,9 +1471,9 @@ function handleAdd(){
   if(S.tab==='projects'){
     S.projects.push(makeProject(text,{tag}));
   } else if(S.tab==='plan'){
-    S.items.push(makeItem(text,'planned','med',{week:S.planWeek,day:null,tag}));
+    S.items.push(makeItem(text,'planned','low',{week:S.planWeek,day:null,tag}));
   } else {
-    S.items.push(makeItem(text,'vault','med',{tag}));
+    S.items.push(makeItem(text,'vault','low',{tag}));
   }
   if(_recOn&&_rec)_rec.stop();
   inp.value='';syncBtn();

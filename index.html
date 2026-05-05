@@ -1438,7 +1438,7 @@ function attachTreeEvents(W,H,edges){
 /* ═══════════════════════════════════════════════
    SPEECH
 ═══════════════════════════════════════════════ */
-let _rec=null,_recOn=false;
+let _rec=null,_recOn=false,_recPending=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){
   try{
@@ -1462,9 +1462,10 @@ if(SR){
         if(inp){ inp.value=txt; syncBtn(); }
       }
     };
-    _rec.onend=()=>{ _recOn=false; syncBtn(); syncBigMic(); };
+    _rec.onstart=()=>{ _recPending=false; _recOn=true; syncBtn(); syncBigMic(); hideMicErr(); };
+    _rec.onend=()=>{ _recPending=false; _recOn=false; syncBtn(); syncBigMic(); };
     _rec.onerror=ev=>{
-      _recOn=false; syncBtn(); syncBigMic();
+      _recPending=false; _recOn=false; syncBtn(); syncBigMic();
       const msgs={
         'not-allowed':'Mic access denied. Enable it in browser settings.',
         'no-speech':'No speech detected. Try again.',
@@ -1477,8 +1478,9 @@ if(SR){
 
 function toggleMic(){
   if(!_rec){ showMicErr('Voice not supported. Use Chrome.'); return; }
+  if(_recPending) return; // still waiting for permission — ignore tap
   if(_recOn){ _rec.stop(); }
-  else{ try{ _rec.start();_recOn=true;syncBtn();syncBigMic();hideMicErr(); }catch(e){_recOn=false;syncBtn();syncBigMic();} }
+  else{ try{ _recPending=true; _rec.start();hideMicErr(); }catch(e){_recPending=false;_recOn=false;syncBtn();syncBigMic();} }
 }
 
 // Sync the single add/mic button state

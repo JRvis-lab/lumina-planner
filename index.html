@@ -134,8 +134,44 @@ button{cursor:pointer}
 .tag{
   display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;
   font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;
-  border:1px solid;opacity:0.85;white-space:nowrap;
+  border:1px solid;opacity:0.85;white-space:nowrap;cursor:pointer;
 }
+.tag:active{opacity:0.6}
+.tag-add{font-size:11px;padding:1px 7px;opacity:0.5}
+.tag-add:hover,.tag-add:active{opacity:0.8}
+
+/* ── TAG SUGGEST ──────────────────────────────────────── */
+.tag-suggest{
+  position:fixed;left:16px;right:16px;max-width:448px;margin:0 auto;
+  background:var(--abyss-mid);border:1px solid var(--gold-mid);border-radius:12px;
+  padding:4px;z-index:90;display:none;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.5);
+  max-height:160px;overflow-y:auto;
+}
+.tag-suggest.open{display:block}
+.tag-sug-item{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--parchment);
+  background:none;border:none;width:100%;text-align:left;cursor:pointer;
+}
+.tag-sug-item:active,.tag-sug-item:hover{background:var(--gold-dim)}
+.tag-sug-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── TAG PICKER (edit existing) ──────────────────────── */
+.tag-picker{
+  position:absolute;bottom:calc(100% + 6px);left:0;
+  background:var(--abyss-mid);border:1px solid var(--gold-mid);border-radius:12px;
+  padding:4px;z-index:85;min-width:120px;
+  box-shadow:0 -4px 18px rgba(0,0,0,0.45);
+  max-height:180px;overflow-y:auto;
+}
+.tag-pick-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--parchment);
+  background:none;border:none;width:100%;text-align:left;cursor:pointer;white-space:nowrap;
+}
+.tag-pick-item:active,.tag-pick-item:hover{background:var(--gold-dim)}
+.tag-pick-item.danger{color:var(--danger)}
 
 /* ── PRIORITY STAR ─────────────────────────────────────── */
 .prio-btn{
@@ -516,6 +552,7 @@ button{cursor:pointer}
 <section class="panel"        id="panel-tree"></section>
 
 <!-- INPUT BAR -->
+<div class="tag-suggest" id="tag-suggest"></div>
 <div class="input-bar" id="input-bar">
   <div class="input-shell">
     <input id="main-input" autocomplete="off" spellcheck="false" placeholder="Capture a thought…">
@@ -687,6 +724,8 @@ function load() {
     if (!S.tags) S.tags=[];
     // Remove old keys
     delete S.stickies; delete S.activeBlock;
+    // Always open on Vault
+    S.tab = 'vault';
   } catch(e){ S={...DEF}; }
 }
 
@@ -713,10 +752,90 @@ function prioBadge(p,id,fn) {
   const ps=PRIO_S[p]||PRIO_S.low;
   return `<button class="prio-btn" onclick="${fn}('${esc(id)}')" style="color:${ps.color}">★</button>`;
 }
-function tagChip(tag) {
-  if (!tag) return '';
+function tagChip(tag, id, type) {
+  if (!tag) {
+    // No tag — show a faint "+" to add one
+    if (!id) return '';
+    return `<button class="tag tag-add" onclick="event.stopPropagation();openTagEdit('${esc(id)}','${esc(type)}')" style="border-color:var(--parch-faint);color:var(--parch-faint)">#</button>`;
+  }
   const c=tagColor(tag);
-  return `<span class="tag" style="border-color:${c};color:${c};background:${c}22">${esc(tag)}</span>`;
+  return `<button class="tag" onclick="event.stopPropagation();openTagEdit('${esc(id)}','${esc(type)}')" style="border-color:${c};color:${c};background:${c}22">${esc(tag)}</button>`;
+}
+
+/* ── TAG EDIT PICKER ──────────────────────────────────── */
+let _tagEdit=null; // {id,type} — type:'item'|'project'
+function openTagEdit(id,type){
+  if(_tagEdit&&_tagEdit.id===id) { _tagEdit=null; }
+  else { _tagEdit={id,type}; }
+  reRenderTab();
+}
+function setTag(id,type,tag){
+  if(type==='item') S.items=S.items.map(x=>x.id===id?{...x,tag}:x);
+  else S.projects=S.projects.map(x=>x.id===id?{...x,tag}:x);
+  if(tag) ensureTag(tag);
+  _tagEdit=null;
+  save(); reRenderTab();
+}
+function tagPickerHTML(currentTag){
+  const id=_tagEdit.id, type=_tagEdit.type;
+  let h='<div class="tag-picker" onclick="event.stopPropagation()">';
+  S.tags.forEach(t=>{
+    const c=tagColor(t);
+    const sel=t===currentTag?' style="background:var(--gold-dim)"':'';
+    h+=`<button class="tag-pick-item"${sel} onclick="setTag('${esc(id)}','${esc(type)}','${esc(t)}')"><span class="tag-sug-dot" style="background:${c}"></span>${esc(t)}</button>`;
+  });
+  if(currentTag){
+    h+=`<button class="tag-pick-item danger" onclick="setTag('${esc(id)}','${esc(type)}',null)">✕ remove</button>`;
+  }
+  if(!S.tags.length && !currentTag){
+    h+=`<div style="padding:8px 10px;font-size:11px;color:var(--parch-faint)">No tags yet — add with #tag</div>`;
+  }
+  h+='</div>';
+  return h;
+}
+function reRenderTab(){
+  if(S.tab==='vault'){renderVault();updateBadges();}
+  else if(S.tab==='plan') renderPlan();
+  else if(S.tab==='projects') renderProjects();
+}
+document.addEventListener('click',()=>{if(_tagEdit){_tagEdit=null;reRenderTab();}});
+
+/* ── TAG AUTOCOMPLETE ─────────────────────────────────── */
+function initTagAutocomplete(inp){
+  inp.addEventListener('input',()=>showTagSuggest(inp));
+  inp.addEventListener('blur',()=>setTimeout(hideTagSuggest,150));
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Escape') hideTagSuggest();
+  });
+}
+function showTagSuggest(inp){
+  const el=document.getElementById('tag-suggest');
+  const val=inp.value;
+  const m=val.match(/#(\w*)$/);
+  if(!m||!S.tags.length){ hideTagSuggest(); return; }
+  const q=m[1].toLowerCase();
+  const matches=S.tags.filter(t=>t.toLowerCase().startsWith(q));
+  if(!matches.length){ hideTagSuggest(); return; }
+  let h='';
+  matches.forEach(t=>{
+    const c=tagColor(t);
+    h+=`<button class="tag-sug-item" onmousedown="event.preventDefault();completeTag('${inp.id}','${esc(t)}')"><span class="tag-sug-dot" style="background:${c}"></span>${esc(t)}</button>`;
+  });
+  el.innerHTML=h;
+  // Position above the input's parent bar
+  const rect=inp.getBoundingClientRect();
+  el.style.bottom=(window.innerHeight-rect.top+6)+'px';
+  el.classList.add('open');
+}
+function hideTagSuggest(){
+  document.getElementById('tag-suggest').classList.remove('open');
+}
+function completeTag(inputId,tag){
+  const inp=document.getElementById(inputId);
+  if(!inp)return;
+  inp.value=inp.value.replace(/#\w*$/,'#'+tag);
+  inp.focus();
+  hideTagSuggest();
 }
 function cyclePrioArr(arr,id) {
   return arr.map(x=>x.id===id?{...x,priority:PRIO_NEXT[x.priority]}:x);
@@ -787,7 +906,7 @@ function renderVault() {
     html+=`<div class="item-card ai" id="vc-${esc(item.id)}">
       <div class="item-body">
         <div class="item-text">${GEM}<span>${esc(item.text)}</span></div>
-        <div class="item-meta"><span>${t}</span>${tagChip(item.tag)}</div>
+        <div class="item-meta" style="position:relative"><span>${t}</span>${tagChip(item.tag,item.id,'item')}${_tagEdit&&_tagEdit.id===item.id?tagPickerHTML(item.tag):''}</div>
         ${S.promoOpen===item.id?promoHTML(item.id):''}
       </div>
       <div class="item-actions">
@@ -909,9 +1028,9 @@ function taskCardHTML(item) {
     <button class="check-ring" onclick="markDone('${esc(item.id)}')"></button>
     <div class="task-body">
       <div class="task-text">${esc(item.text)}</div>
-      <div class="task-footer">
+      <div class="task-footer" style="position:relative">
         <button class="day-pill" onclick="toggleDayPick('${esc(item.id)}')">${esc(dayLbl)}</button>
-        ${tagChip(item.tag)}
+        ${tagChip(item.tag,item.id,'item')}${_tagEdit&&_tagEdit.id===item.id?tagPickerHTML(item.tag):''}
       </div>
       ${showPick?dayPickHTML(item.id,item.day):''}
     </div>
@@ -982,8 +1101,8 @@ function renderProjects() {
         <button class="expand-btn ${isExp?'open':''}" onclick="toggleExp('${esc(proj.id)}')">▶</button>
         <div class="proj-body" onclick="toggleExp('${esc(proj.id)}')">
           <div class="proj-title">${isNS?'★ ':''}${esc(proj.text)}</div>
-          <div class="proj-meta">
-            <span>${dt}</span>${tagChip(proj.tag)}
+          <div class="proj-meta" style="position:relative">
+            <span>${dt}</span>${tagChip(proj.tag,proj.id,'project')}${_tagEdit&&_tagEdit.id===proj.id?tagPickerHTML(proj.tag):''}
             ${children.length?`<span style="color:var(--parch-faint)">${doneCh}/${children.length} tasks</span>`:''}
           </div>
         </div>
@@ -1535,6 +1654,21 @@ load();
 S.tab = S.tab || 'vault'; // default to vault on fresh install
 checkNewDay();
 switchTab(S.tab);  // syncs panel visibility + tab active classes
+// Init tag autocomplete on inputs
+['main-input','vault-type-input'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) initTagAutocomplete(el);
+});
+// Child inputs are dynamic — delegate via MutationObserver
+new MutationObserver(muts=>{
+  muts.forEach(m=>m.addedNodes.forEach(n=>{
+    if(n.querySelectorAll){
+      n.querySelectorAll('.child-input').forEach(ci=>{
+        if(!ci._tagAC){ci._tagAC=true;initTagAutocomplete(ci);}
+      });
+    }
+  }));
+}).observe(document.body,{childList:true,subtree:true});
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
